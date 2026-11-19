@@ -4,3 +4,5 @@
 # 忽略 Python 缓存
 __pycache__/
 *.pyc
+# 忽略派生的 embedding 缓存
+data/processed/

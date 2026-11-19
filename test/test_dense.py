@@ -1,6 +1,7 @@
 """DenseRetriever 测试：注入假编码器，不加载真实模型。"""
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -20,6 +21,18 @@ class FakeEncoder:
 
     def encode(self, texts, *, batch_size, show_progress_bar, normalize_embeddings):
         return np.array([self.mapping[text] for text in texts], dtype=np.float32)
+
+
+class CountingEncoder(FakeEncoder):
+    """记录编码调用次数，用于验证缓存。"""
+
+    def __init__(self, mapping):
+        super().__init__(mapping)
+        self.calls = 0
+
+    def encode(self, *args, **kwargs):
+        self.calls += 1
+        return super().encode(*args, **kwargs)
 
 
 def make_docs():
@@ -69,6 +82,37 @@ class TestDenseRetriever(unittest.TestCase):
     def test_invalid_batch_size(self):
         with self.assertRaises(ValueError):
             DenseRetriever(FakeEncoder({}), batch_size=0)
+
+    def test_cache_hit_avoids_reencode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+            encoder = CountingEncoder(mapping)
+            first = DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(make_docs())
+            self.assertEqual(encoder.calls, 1)
+            second = DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(make_docs())
+            self.assertEqual(encoder.calls, 1)  # 命中缓存，未重新编码
+            np.testing.assert_allclose(first.embeddings, second.embeddings)
+
+    def test_cache_miss_on_changed_corpus(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "delta": (1.0, 1.0),
+            }
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(make_docs())
+            extra = make_docs() + [Document("d4", "", "delta")]
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(extra)
+            self.assertEqual(encoder.calls, 2)
+
+    def test_no_cache_dir_reencodes(self):
+        mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+        encoder = CountingEncoder(mapping)
+        DenseRetriever(encoder).fit(make_docs())
+        DenseRetriever(encoder).fit(make_docs())
+        self.assertEqual(encoder.calls, 2)
 
 
 if __name__ == "__main__":

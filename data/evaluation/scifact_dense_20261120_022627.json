@@ -1,0 +1,53 @@
+{
+  "dataset": {
+    "name": "scifact",
+    "corpus_size": 5183,
+    "queries_size": 300,
+    "qrels_pairs": 339
+  },
+  "config": {
+    "method": "dense",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true
+  },
+  "metrics": {
+    "P@1": 0.5033333333333333,
+    "R@1": 0.4823333333333334,
+    "NDCG@1": 0.5033333333333333,
+    "P@5": 0.16400000000000042,
+    "R@5": 0.7379444444444444,
+    "NDCG@5": 0.6292831434933509,
+    "P@10": 0.08833333333333361,
+    "R@10": 0.7833333333333333,
+    "NDCG@10": 0.6450816521455768,
+    "P@100": 0.01053333333333327,
+    "R@100": 0.925,
+    "NDCG@100": 0.6766476669524598,
+    "MRR": 0.6109678843408567
+  },
+  "num_queries": 300,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.0154,
+    "model_load_seconds": 1.7583,
+    "index_seconds": 0.0109,
+    "search_total_seconds": 1.461,
+    "search_mean_seconds": 0.00487,
+    "search_median_seconds": 0.003919
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

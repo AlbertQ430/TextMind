@@ -33,6 +33,7 @@ from retrieval.dense import DenseRetriever  # noqa: E402
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "scifact"
 RESULT_DIR = PROJECT_ROOT / "data" / "evaluation"
+EMBEDDING_CACHE_DIR = PROJECT_ROOT / "data" / "processed" / "embeddings"
 DEFAULT_MODEL = "Qwen/Qwen3-Embedding-0.6B"
 
 
@@ -133,7 +134,12 @@ def main(argv=None) -> int:
         start = time.perf_counter()
         model = SentenceTransformer(args.model, device=device)
         model_load_seconds = time.perf_counter() - start
-        retriever = DenseRetriever(model, batch_size=args.batch_size)
+        retriever = DenseRetriever(
+            model,
+            batch_size=args.batch_size,
+            cache_dir=EMBEDDING_CACHE_DIR,
+            cache_key=args.model,
+        )
 
     start = time.perf_counter()
     retriever.fit(dataset.documents)

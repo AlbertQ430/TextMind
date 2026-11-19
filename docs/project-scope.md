@@ -76,6 +76,7 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
       R@100 = 0.8859，结果保存于 `data/evaluation/`。
 - [x] Dense Retrieval 实现与 Qwen3-Embedding-0.6B 接入；SciFact test split
       Dense 实验跑通：NDCG@10 = 0.6762，R@100 = 0.9333。
-- [ ] 不同 Embedding 模型对照实验。
+- [x] 不同 Embedding 模型对照实验（Qwen3-Embedding-0.6B、all-MiniLM-L6-v2、BGE-M3），
+      汇总表见 `data/evaluation/summary.md`。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。
 - [ ] 结果分析与 Hybrid Retrieval（可选扩展）。

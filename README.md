@@ -71,6 +71,23 @@ python test/test_similarity.py
 - [待讨论事项](docs/requirements/open-questions.md)
 - [技术验证报告](docs/technical-validation.md)
 
+## 当前实验结果
+
+SciFact test split（300 queries），统一流程与评价口径：
+
+| 方法 | P@1 | NDCG@10 | R@100 | MRR |
+| --- | --- | --- | --- | --- |
+| BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
+| Dense：Qwen3-Embedding-0.6B | 0.5500 | 0.6762 | 0.9333 | 0.6435 |
+| Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
+| Dense：BGE-M3 | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
+
+完整汇总（含索引耗时与检索延迟）由 `python src/scripts/compare_experiments.py`
+生成，见 `data/evaluation/summary.md`。
+
+说明：Dense 结果均为默认 encode 配置，未对查询加模型特定的指令前缀；
+BGE-M3 等模型的官方推荐前缀会带来不同的分数，正式结论前应作为单独实验记录。
+
 ## 项目状态
 
 项目目前已完成 SciFact 上的两条检索基线：BM25（NDCG@10 = 0.6605）与
