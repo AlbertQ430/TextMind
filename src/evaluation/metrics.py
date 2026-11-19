@@ -81,6 +81,12 @@ def evaluate(
     if not retrieved:
         raise ValueError("retrieved 为空，无法评估")
 
+    ks = tuple(dict.fromkeys(ks))
+    if not ks:
+        raise ValueError("ks 不能为空")
+    if any(k <= 0 for k in ks):
+        raise ValueError(f"ks 必须全为正整数，实际 {ks}")
+
     sums: Dict[str, float] = {}
     for k in ks:
         sums[f"P@{k}"] = 0.0

@@ -1,6 +1,7 @@
 """SciFact 数据集加载与校验测试。"""
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from document.dataset import (  # noqa: E402
     Document,
     Query,
     RetrievalDataset,
+    _load_qrels,
     load_scifact,
 )
 
@@ -44,6 +46,36 @@ class TestValidate(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             dataset.validate()
+
+
+class TestQrelsLoad(unittest.TestCase):
+    def _write(self, content: str) -> Path:
+        handle = tempfile.NamedTemporaryFile(
+            "w", suffix=".tsv", delete=False, encoding="utf-8"
+        )
+        handle.write(content)
+        handle.close()
+        return Path(handle.name)
+
+    def test_duplicate_annotation_raises(self):
+        path = self._write("query-id\tcorpus-id\tscore\n1\t10\t1\n1\t10\t1\n")
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                _load_qrels(path)
+            message = str(ctx.exception)
+            self.assertIn("重复", message)
+            self.assertIn("1", message)
+            self.assertIn("10", message)
+        finally:
+            path.unlink()
+
+    def test_malformed_row_raises(self):
+        path = self._write("query-id\tcorpus-id\tscore\n1\t10\n")
+        try:
+            with self.assertRaises(ValueError):
+                _load_qrels(path)
+        finally:
+            path.unlink()
 
 
 class TestSciFact(unittest.TestCase):

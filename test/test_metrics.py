@@ -84,6 +84,12 @@ class TestEvaluate(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate({}, {})
 
+    def test_invalid_ks_rejected(self):
+        with self.assertRaises(ValueError):
+            evaluate({"q": ["a"]}, {"q": {"a": 1}}, ks=())
+        with self.assertRaises(ValueError):
+            evaluate({"q": ["a"]}, {"q": {"a": 1}}, ks=(0, 1))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

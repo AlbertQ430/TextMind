@@ -33,7 +33,7 @@ DATA_DIR = PROJECT_ROOT / "data" / "raw" / "scifact"
 RESULT_DIR = PROJECT_ROOT / "data" / "evaluation"
 
 
-def parse_args(argv=None) -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SciFact BM25 检索实验")
     parser.add_argument("--corpus", default=str(DATA_DIR / "corpus.jsonl"))
     parser.add_argument("--queries", default=str(DATA_DIR / "queries.jsonl"))
@@ -45,11 +45,48 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--b", type=float, default=0.75)
     parser.add_argument("--limit", type=int, default=None, help="只评估前 N 条 query（调试用）")
     parser.add_argument("--output", default=None, help="结果 JSON 路径")
-    return parser.parse_args(argv)
+    return parser
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    return build_parser().parse_args(argv)
+
+
+def validate_args(args: argparse.Namespace) -> argparse.Namespace:
+    """校验实验参数，非法时抛出带具体数值的 ValueError。
+
+    校验项：
+    - ``top_k`` 为正整数；
+    - 评价 K 列表非空、全为正整数、去重保序；
+    - ``top_k >= max(k)``，保证每个评价 K 都能取满；
+    - ``k1 >= 0``，``b`` 落在 ``[0, 1]``。
+    """
+    if args.top_k <= 0:
+        raise ValueError(f"--top-k 必须为正整数，实际 {args.top_k}")
+
+    ks = list(dict.fromkeys(args.k))
+    if not ks:
+        raise ValueError("--k 至少需要一个 K 值")
+    if any(k <= 0 for k in ks):
+        raise ValueError(f"--k 必须为正整数，实际 {args.k}")
+    if args.top_k < max(ks):
+        raise ValueError(f"--top-k ({args.top_k}) 必须 >= 最大评价 K ({max(ks)})")
+    if args.k1 < 0:
+        raise ValueError(f"--k1 必须 >= 0，实际 {args.k1}")
+    if not 0.0 <= args.b <= 1.0:
+        raise ValueError(f"--b 必须在 [0, 1] 内，实际 {args.b}")
+
+    args.k = ks
+    return args
 
 
 def main(argv=None) -> int:
-    args = parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        args = validate_args(args)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     start = time.perf_counter()
     dataset = load_scifact(args.corpus, args.queries, args.qrels, name=args.name)

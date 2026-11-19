@@ -1,0 +1,57 @@
+"""实验参数校验测试。"""
+
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from scripts.run_experiment import parse_args, validate_args  # noqa: E402
+
+
+class TestValidateArgs(unittest.TestCase):
+    def test_valid_defaults(self):
+        args = validate_args(parse_args([]))
+        self.assertEqual(args.top_k, 100)
+        self.assertEqual(args.k, [1, 5, 10, 100])
+
+    def test_top_k_must_cover_max_k(self):
+        args = parse_args(["--top-k", "5", "--k", "10"])
+        with self.assertRaises(ValueError) as ctx:
+            validate_args(args)
+        self.assertIn("top-k", str(ctx.exception))
+
+    def test_top_k_not_positive(self):
+        args = parse_args(["--top-k", "0"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_k_not_positive(self):
+        args = parse_args(["--k", "0", "10"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_empty_k_rejected(self):
+        args = parse_args([])
+        args.k = []
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_k_deduplicated_preserving_order(self):
+        args = validate_args(parse_args(["--k", "10", "10", "5"]))
+        self.assertEqual(args.k, [10, 5])
+
+    def test_invalid_b(self):
+        args = parse_args(["--b", "1.5"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_negative_k1(self):
+        args = parse_args(["--k1", "-0.1"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

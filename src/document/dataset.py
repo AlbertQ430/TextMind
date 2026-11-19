@@ -90,18 +90,32 @@ def _load_jsonl(path: Path) -> List[dict]:
 
 
 def _load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
-    """读取 TREC 风格 qrels（query-id / corpus-id / score，tab 分隔）。"""
+    """读取 TREC 风格 qrels（query-id / corpus-id / score，tab 分隔）。
+
+    同一 (query_id, doc_id) 出现多次时抛出 ValueError，避免静默覆盖。
+    """
     qrels: Dict[str, Dict[str, int]] = {}
     with path.open("r", encoding="utf-8") as handle:
         header = handle.readline()
         if "query-id" not in header:
             raise ValueError(f"Qrels 文件缺少表头: {path}")
-        for line in handle:
+        for lineno, line in enumerate(handle, start=2):
             line = line.strip()
             if not line:
                 continue
-            query_id, doc_id, score = line.split("\t")
-            qrels.setdefault(query_id, {})[doc_id] = int(score)
+            parts = line.split("\t")
+            if len(parts) != 3:
+                raise ValueError(
+                    f"{path}:{lineno} 格式错误：需要 3 列（query-id/corpus-id/score），"
+                    f"实际 {len(parts)} 列"
+                )
+            query_id, doc_id, score = parts
+            rels = qrels.setdefault(query_id, {})
+            if doc_id in rels:
+                raise ValueError(
+                    f"{path}:{lineno} 重复标注：query {query_id} - document {doc_id}"
+                )
+            rels[doc_id] = int(score)
     return qrels
 
 
