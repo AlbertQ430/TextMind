@@ -52,6 +52,15 @@ class TestValidateArgs(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_args(args)
 
+    def test_limit_not_positive(self):
+        args = parse_args(["--limit", "0"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_limit_valid(self):
+        args = validate_args(parse_args(["--limit", "50"]))
+        self.assertEqual(args.limit, 50)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -75,6 +75,8 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError(f"--k1 必须 >= 0，实际 {args.k1}")
     if not 0.0 <= args.b <= 1.0:
         raise ValueError(f"--b 必须在 [0, 1] 内，实际 {args.b}")
+    if args.limit is not None and args.limit <= 0:
+        raise ValueError(f"--limit 必须为正整数，实际 {args.limit}")
 
     args.k = ks
     return args
