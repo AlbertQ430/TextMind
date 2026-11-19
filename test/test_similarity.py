@@ -12,8 +12,11 @@ MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
 def main() -> int:
     from sentence_transformers import SentenceTransformer
     from sentence_transformers.util import cos_sim
+    import torch
 
-    model = SentenceTransformer(MODEL_NAME, device="mps")
+    #使用 MPS 可用性检测，必要时回退 CPU。
+    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+    model = SentenceTransformer(MODEL_NAME, device=device)
 
     query = "什么是人工智能中的自然语言处理？"
 
