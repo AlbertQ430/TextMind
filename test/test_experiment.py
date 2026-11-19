@@ -61,6 +61,20 @@ class TestValidateArgs(unittest.TestCase):
         args = validate_args(parse_args(["--limit", "50"]))
         self.assertEqual(args.limit, 50)
 
+    def test_dense_batch_size_rejected(self):
+        args = parse_args(["--method", "dense", "--batch-size", "0"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_dense_empty_model_rejected(self):
+        args = parse_args(["--method", "dense", "--model", ""])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
+    def test_dense_ignores_bm25_params(self):
+        args = validate_args(parse_args(["--method", "dense", "--k1", "-1", "--b", "2"]))
+        self.assertEqual(args.method, "dense")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

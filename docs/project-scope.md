@@ -62,6 +62,7 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
 - Apple Silicon MPS 已验证可用。
 - Qwen/Qwen3-Embedding-0.6B 已验证可以在 MPS 上加载并输出向量。
 - BM25 已实现（倒排索引、文档长度归一化、可注入分词器），并通过单元测试。
+- Dense Retrieval 已实现（Embedding 编码 + 余弦相似度检索），Qwen3-Embedding-0.6B 已接入。
 - 数据集加载与校验、评价指标（P@K / R@K / MRR / NDCG@K）已完成。
 - SciFact 已完成流程验证：加载、BM25 检索、评价与结果落盘。
 
@@ -73,6 +74,8 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
 - [x] 评价指标实现与单元测试。
 - [x] SciFact test split（300 queries）BM25 实验跑通：NDCG@10 = 0.6605，
       R@100 = 0.8859，结果保存于 `data/evaluation/`。
-- [ ] Dense Retrieval 与 Embedding 模型接入。
+- [x] Dense Retrieval 实现与 Qwen3-Embedding-0.6B 接入；SciFact test split
+      Dense 实验跑通：NDCG@10 = 0.6762，R@100 = 0.9333。
+- [ ] 不同 Embedding 模型对照实验。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。
-- [ ] 对照实验、结果分析与 Hybrid Retrieval（可选扩展）。
+- [ ] 结果分析与 Hybrid Retrieval（可选扩展）。

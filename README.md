@@ -17,7 +17,7 @@ TextMind 当前阶段是一个**文本信息检索算法实验项目**，用于�
 ## 当前实现范围
 
 - **数据集**：Corpus、Queries、Qrels 的读取、校验和统一格式转换。
-- **检索方法**：BM25 已完成实现；Dense Retrieval、Hybrid Retrieval 待实现。
+- **检索方法**：BM25 与 Dense Retrieval 已完成实现；Hybrid Retrieval 待实现。
 - **模型比较**：比较不同 Embedding 模型在相同检索任务上的效果。
 - **评价**：Precision@K、Recall@K、MRR、NDCG@K，以及检索耗时。
 - **实验记录**：保存运行配置、环境信息、指标结果和必要的查询级结果。
@@ -40,15 +40,18 @@ TextMind 当前阶段是一个**文本信息检索算法实验项目**，用于�
 - 已验证 Apple Silicon MPS 可用。
 - 已验证 `Qwen/Qwen3-Embedding-0.6B` 可以在 MPS 上加载并生成向量。
 - BM25 检索器已实现（倒排索引 + 文档长度归一化），并通过单元测试。
+- Dense Retrieval 已实现（Embedding 编码 + 余弦相似度检索），编码器可替换。
 - 数据加载与校验、评价指标（P@K / R@K / MRR / NDCG@K）均已完成。
-- SciFact 已作为流程验证数据集完成加载、BM25 检索、评价与结果落盘。
-- 中文正式实验数据集尚待确定。
+- SciFact 已完成流程验证：BM25 与 Dense 均跑通完整实验并落盘结果。
 
 ## 运行方式
 
 ```bash
-# 跑 SciFact test split 的 BM25 实验，结果写入 data/evaluation/
+# BM25 实验（默认），结果写入 data/evaluation/
 python src/scripts/run_experiment.py
+
+# Dense Retrieval 实验（首次需编码 5183 篇文档，约 9~10 分钟）
+python src/scripts/run_experiment.py --method dense
 
 # 跑全部单元测试（自动发现 test/ 下的测试）
 python -m unittest discover -s test -v
@@ -70,8 +73,10 @@ python test/test_similarity.py
 
 ## 项目状态
 
-项目目前已完成 SciFact 上的最小检索实验闭环：数据集加载 → BM25 检索 → 指标计算 → 结果落盘。
+项目目前已完成 SciFact 上的两条检索基线：BM25（NDCG@10 = 0.6605）与
+Dense Retrieval（Qwen3-Embedding-0.6B，NDCG@10 = 0.6762），均完成
+数据集加载 → 检索 → 指标计算 → 结果落盘。
 
-下一步优先：Dense Retrieval 与 Embedding 模型接入、不同模型对照实验；中文正式实验数据集尚未选定。
+下一步优先：不同 Embedding 模型对照实验与结果分析；中文正式实验数据集尚未选定。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
