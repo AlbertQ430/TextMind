@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""SciFact BM25 检索实验入口。
+
+用法::
+
+    python src/scripts/run_experiment.py
+    python src/scripts/run_experiment.py --qrels data/raw/scifact/qrels/train.tsv
+    python src/scripts/run_experiment.py --limit 50 --top-k 100
+
+输出：终端打印指标摘要，同时把完整结果写入
+``data/evaluation/<name>_bm25_<timestamp>.json``。
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import platform
+import statistics
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from document.dataset import load_scifact  # noqa: E402
+from evaluation.metrics import evaluate  # noqa: E402
+from retrieval.bm25 import BM25Retriever  # noqa: E402
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data" / "raw" / "scifact"
+RESULT_DIR = PROJECT_ROOT / "data" / "evaluation"
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="SciFact BM25 检索实验")
+    parser.add_argument("--corpus", default=str(DATA_DIR / "corpus.jsonl"))
+    parser.add_argument("--queries", default=str(DATA_DIR / "queries.jsonl"))
+    parser.add_argument("--qrels", default=str(DATA_DIR / "qrels" / "test.tsv"))
+    parser.add_argument("--name", default="scifact", help="数据集标识，用于结果命名")
+    parser.add_argument("--top-k", type=int, default=100, help="检索深度")
+    parser.add_argument("--k", type=int, nargs="+", default=[1, 5, 10, 100], help="评价的 K 值")
+    parser.add_argument("--k1", type=float, default=1.2)
+    parser.add_argument("--b", type=float, default=0.75)
+    parser.add_argument("--limit", type=int, default=None, help="只评估前 N 条 query（调试用）")
+    parser.add_argument("--output", default=None, help="结果 JSON 路径")
+    return parser.parse_args(argv)
+
+
+def main(argv=None) -> int:
+    args = parse_args(argv)
+
+    start = time.perf_counter()
+    dataset = load_scifact(args.corpus, args.queries, args.qrels, name=args.name)
+    load_seconds = time.perf_counter() - start
+
+    retriever = BM25Retriever(k1=args.k1, b=args.b)
+    start = time.perf_counter()
+    retriever.fit(dataset.documents)
+    index_seconds = time.perf_counter() - start
+
+    eval_queries = [q for q in dataset.queries if q.query_id in dataset.qrels]
+    if args.limit is not None:
+        eval_queries = eval_queries[: args.limit]
+
+    retrieved = {}
+    latencies = []
+    for query in eval_queries:
+        start = time.perf_counter()
+        results = retriever.search(query.text, top_k=args.top_k)
+        latencies.append(time.perf_counter() - start)
+        retrieved[query.query_id] = [doc_id for doc_id, _ in results]
+
+    subset_qrels = {query.query_id: dataset.qrels[query.query_id] for query in eval_queries}
+    evaluation = evaluate(retrieved, subset_qrels, ks=args.k)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output = Path(args.output) if args.output else (
+        RESULT_DIR / f"{args.name}_bm25_{timestamp}.json"
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    result = {
+        "dataset": {
+            "name": dataset.name,
+            "corpus_size": len(dataset.documents),
+            "queries_size": len(eval_queries),
+            "qrels_pairs": sum(len(rels) for rels in subset_qrels.values()),
+        },
+        "config": {
+            "method": "bm25",
+            "k1": args.k1,
+            "b": args.b,
+            "top_k": args.top_k,
+            "k_values": list(args.k),
+        },
+        "metrics": evaluation["metrics"],
+        "num_queries": evaluation["num_queries"],
+        "num_skipped": evaluation["num_skipped"],
+        "timing": {
+            "load_seconds": round(load_seconds, 4),
+            "index_seconds": round(index_seconds, 4),
+            "search_total_seconds": round(sum(latencies), 4),
+            "search_mean_seconds": round(statistics.mean(latencies), 6),
+            "search_median_seconds": round(statistics.median(latencies), 6),
+        },
+        "environment": {
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(f"数据集: {dataset.name}  corpus={len(dataset.documents)}  "
+          f"queries={len(eval_queries)}  qrels_pairs={result['dataset']['qrels_pairs']}")
+    print(f"BM25: k1={args.k1} b={args.b} top_k={args.top_k}")
+    print("指标:")
+    for name, value in evaluation["metrics"].items():
+        print(f"  {name:<8} {value:.4f}")
+    print(f"无相关标注跳过: {evaluation['num_skipped']}")
+    print(f"耗时: 加载 {load_seconds:.2f}s  建索引 {index_seconds:.2f}s  "
+          f"检索总计 {sum(latencies):.3f}s  "
+          f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
+          f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
+    print(f"结果已写入: {output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
