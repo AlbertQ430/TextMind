@@ -1,0 +1,54 @@
+{
+  "dataset": {
+    "name": "scifact",
+    "corpus_size": 5183,
+    "queries_size": 300,
+    "qrels_pairs": 339
+  },
+  "config": {
+    "method": "dense",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "BAAI/bge-m3",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "query_prefix": "Represent this sentence for searching relevant passages: "
+  },
+  "metrics": {
+    "P@1": 0.53,
+    "R@1": 0.5007777777777778,
+    "NDCG@1": 0.53,
+    "P@5": 0.15800000000000036,
+    "R@5": 0.7151666666666667,
+    "NDCG@5": 0.6258176425591877,
+    "P@10": 0.08833333333333361,
+    "R@10": 0.7872222222222222,
+    "NDCG@10": 0.6501961133471329,
+    "P@100": 0.010333333333333273,
+    "R@100": 0.9076666666666667,
+    "NDCG@100": 0.6758542860112957,
+    "MRR": 0.6206095934795043
+  },
+  "num_queries": 300,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.0153,
+    "model_load_seconds": 4.8074,
+    "index_seconds": 0.0164,
+    "search_total_seconds": 7.934,
+    "search_mean_seconds": 0.026447,
+    "search_median_seconds": 0.025341
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

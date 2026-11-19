@@ -24,7 +24,12 @@ def _config_key(config: dict) -> tuple:
     """同一实验配置的标识，用于去重时保留最新结果。"""
     if config.get("method") == "bm25":
         return ("bm25", config.get("k1"), config.get("b"), config.get("top_k"))
-    return ("dense", config.get("model"), config.get("top_k"))
+    return (
+        "dense",
+        config.get("model"),
+        config.get("top_k"),
+        config.get("query_prefix", ""),
+    )
 
 
 def load_results(directory: Path) -> list[dict]:
@@ -49,7 +54,10 @@ def describe(config: dict) -> str:
     method = config.get("method", "?")
     if method == "bm25":
         return f"BM25 (k1={config.get('k1')}, b={config.get('b')})"
-    return f"Dense: {config.get('model', '?')}"
+    label = f"Dense: {config.get('model', '?')}"
+    if config.get("query_prefix"):
+        label += " (+prefix)"
+    return label
 
 
 def build_table(results: list[dict]) -> str:

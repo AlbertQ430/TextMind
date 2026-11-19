@@ -78,22 +78,25 @@ SciFact test split（300 queries），统一流程与评价口径：
 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
 | --- | --- | --- | --- | --- |
 | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
-| Dense：Qwen3-Embedding-0.6B | 0.5500 | 0.6762 | 0.9333 | 0.6435 |
+| Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6762 | 0.9333 | 0.6435 |
+| Dense：Qwen3-Embedding-0.6B + instruct 前缀 | **0.5733** | **0.7005** | **0.9567** | **0.6710** |
 | Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
-| Dense：BGE-M3 | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
+| Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
+| Dense：BGE-M3 + 官方前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
 
 完整汇总（含索引耗时与检索延迟）由 `python src/scripts/compare_experiments.py`
 生成，见 `data/evaluation/summary.md`。
 
-说明：Dense 结果均为默认 encode 配置，未对查询加模型特定的指令前缀；
-BGE-M3 等模型的官方推荐前缀会带来不同的分数，正式结论前应作为单独实验记录。
+说明：模型官方推荐的查询前缀已作为单独实验记录（`--query-prefix` 参数）。
+无前缀与有前缀结果不可直接混用比较，正式结论需注明所用配置。
 
 ## 项目状态
 
-项目目前已完成 SciFact 上的两条检索基线：BM25（NDCG@10 = 0.6605）与
-Dense Retrieval（Qwen3-Embedding-0.6B，NDCG@10 = 0.6762），均完成
-数据集加载 → 检索 → 指标计算 → 结果落盘。
+项目目前已完成 SciFact 上的检索实验闭环：BM25 基线、三种 Embedding 模型对照
+（Qwen3-Embedding-0.6B、all-MiniLM-L6-v2、BGE-M3）以及官方查询前缀实验，
+均完成 数据集加载 → 检索 → 指标计算 → 结果落盘。
 
-下一步优先：不同 Embedding 模型对照实验与结果分析；中文正式实验数据集尚未选定。
+下一步优先：结果分析（图表、错误分析）与 Hybrid Retrieval；中文正式实验数据集尚未选定。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
+

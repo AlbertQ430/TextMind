@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import platform
 import statistics
@@ -53,6 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--device", choices=["auto", "mps", "cpu"], default="auto", help="推理设备（仅 dense）"
     )
     parser.add_argument("--batch-size", type=int, default=32, help="编码 batch 大小（仅 dense）")
+    parser.add_argument(
+        "--query-prefix", default="", help="查询前缀（仅 dense，例如 BGE 官方检索指令）"
+    )
     parser.add_argument("--limit", type=int, default=None, help="只评估前 N 条 query（调试用）")
     parser.add_argument("--output", default=None, help="结果 JSON 路径")
     return parser
@@ -153,7 +157,7 @@ def main(argv=None) -> int:
     latencies = []
     for query in eval_queries:
         start = time.perf_counter()
-        results = retriever.search(query.text, top_k=args.top_k)
+        results = retriever.search(args.query_prefix + query.text, top_k=args.top_k)
         latencies.append(time.perf_counter() - start)
         retrieved[query.query_id] = [doc_id for doc_id, _ in results]
 
@@ -161,8 +165,12 @@ def main(argv=None) -> int:
     evaluation = evaluate(retrieved, subset_qrels, ks=args.k)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    suffix = ""
+    if args.query_prefix:
+        digest = hashlib.sha1(args.query_prefix.encode("utf-8")).hexdigest()[:8]
+        suffix = f"_prefix_{digest}"
     output = Path(args.output) if args.output else (
-        RESULT_DIR / f"{args.name}_{args.method}_{timestamp}.json"
+        RESULT_DIR / f"{args.name}_{args.method}{suffix}_{timestamp}.json"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -180,6 +188,7 @@ def main(argv=None) -> int:
                 "device": device,
                 "batch_size": args.batch_size,
                 "normalize_embeddings": True,
+                "query_prefix": args.query_prefix,
             }
         )
 
@@ -219,8 +228,9 @@ def main(argv=None) -> int:
     if args.method == "bm25":
         print(f"方法: BM25  k1={args.k1} b={args.b} top_k={args.top_k}")
     else:
+        prefix_note = f"  query_prefix={args.query_prefix!r}" if args.query_prefix else ""
         print(f"方法: Dense  model={args.model} device={device} "
-              f"batch_size={args.batch_size} top_k={args.top_k}")
+              f"batch_size={args.batch_size} top_k={args.top_k}{prefix_note}")
     print("指标:")
     for name, value in evaluation["metrics"].items():
         print(f"  {name:<8} {value:.4f}")

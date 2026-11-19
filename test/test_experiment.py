@@ -75,6 +75,12 @@ class TestValidateArgs(unittest.TestCase):
         args = validate_args(parse_args(["--method", "dense", "--k1", "-1", "--b", "2"]))
         self.assertEqual(args.method, "dense")
 
+    def test_query_prefix_kept(self):
+        args = validate_args(
+            parse_args(["--method", "dense", "--query-prefix", "Represent: "])
+        )
+        self.assertEqual(args.query_prefix, "Represent: ")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -54,6 +54,24 @@ class TestCompareExperiments(unittest.TestCase):
         self.assertIn("BM25", describe({"method": "bm25", "k1": 1.2, "b": 0.75}))
         self.assertEqual(describe({"method": "dense", "model": "m"}), "Dense: m")
 
+    def test_prefix_variants_are_distinct(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            metrics = {"P@1": 0.5, "NDCG@10": 0.6, "R@100": 0.9, "MRR": 0.6}
+            write_result(
+                directory,
+                "a.json",
+                {"method": "dense", "model": "m", "query_prefix": ""},
+                metrics,
+            )
+            write_result(
+                directory,
+                "b.json",
+                {"method": "dense", "model": "m", "query_prefix": "prefix "},
+                metrics,
+            )
+            self.assertEqual(len(load_results(directory)), 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
