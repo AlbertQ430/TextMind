@@ -17,7 +17,7 @@
 
 | 数据集 | 语言 / 任务 | 规模与标注 | 许可证与获取 | 初步判断 |
 | --- | --- | --- | --- | --- |
-| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 约 102,001 条；Queries 约 2,740 条；独立 Qrels 约 9,839 条标注 | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。数据卡未明确给出许可证，需追溯原始数据集授权 | **中文首选候选**，但授权核验是前置事项 |
+| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 约 102,001 条；Queries 约 4,000 条（C-MTEB 任务测试样本数）；独立 Qrels 约 9,839 条标注 | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。数据卡未明确给出许可证，需追溯原始数据集授权 | **中文首选候选**，但授权核验是前置事项 |
 | BEIR / SciFact | 英文科学事实核查检索 | Corpus 5,183 篇；官方 BEIR test 查询 300 条；另有 train/test 查询与 Qrels | [Hugging Face 数据集](https://huggingface.co/datasets/BeIR/scifact)，页面标注 CC-BY-SA-4.0；也可通过 BEIR 官方加载器下载 | **小规模流程验证首选**，数据较小，容易快速跑通 |
 | T2Ranking | 中文 Passage Retrieval / Ranking | Collection 2,303,643 条；Dev/Test Queries 各 24,832 条；提供 retrieval 与 reranking 的不同 Qrels | [项目仓库](https://github.com/THUIR/T2Ranking)；[Hugging Face 数据集](https://huggingface.co/datasets/THUIR/T2Ranking)，标注 Apache-2.0。完整数据仓库页面显示约 16.5 GB | **后续大规模扩展**，首轮不建议完整下载 |
 
@@ -25,13 +25,18 @@
 
 ### 3.1 DuRetrieval
 
-来源：C-MTEB（Chinese Massive Text Embedding Benchmark）在 Hugging Face 上提供的数据集。
+这里指 C-MTEB 在 Hugging Face 上整理的 DuRetrieval 评测版本，不要与百度发布的原始完整 DuReader Retrieval 数据集混为一谈。
+
+- C-MTEB 版本：Corpus 约 102,001 条，C-MTEB 任务列表标注测试样本数为 4,000，Qrels 约 9,839 条。
+- 百度原始 DuReader Retrieval：官方说明包含约 8.09M 段落，训练约 86K 个 Query-相关段落样本，开发集约 2K、测试集约 4K；原始数据下载说明指向官方数据集介绍页，可能需要注册获取。
+
+来源：C-MTEB（Chinese Massive Text Embedding Benchmark）在 Hugging Face 上提供的整理版本，以及百度 DuReader 官方项目说明。
 
 - Corpus 和 Queries 位于 `C-MTEB/DuRetrieval`。
 - 相关性标注单独放在 `C-MTEB/DuRetrieval-qrels`。
 - Hugging Face 页面显示 Corpus 约 102,001 条记录，整个数据集页面约 64.5 MB。
 - Qrels 页面显示约 9,839 条标注记录。
-- C-MTEB 数据集列表显示 Queries 约 2,740 条。
+- C-MTEB 任务列表将 DuRetrieval 的测试样本数列为 4,000；不同镜像或拆分页面展示的行数可能不同，正式下载后应以实际 Query / Qrels 文件和官方评测划分为准。
 
 注意事项：
 - Corpus / Queries 与 Qrels 分开发布，导入时需要按 ID 关联。
@@ -41,6 +46,7 @@
 获取入口：
 - https://huggingface.co/datasets/C-MTEB/DuRetrieval
 - https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels
+- 百度原始数据说明：https://github.com/baidu/DuReader/blob/master/DuReader-Retrieval/README.md
 
 ### 3.2 BEIR / SciFact
 
