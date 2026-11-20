@@ -184,6 +184,7 @@ def main(argv=None) -> int:
             retriever = HybridRetriever(
                 [BM25Retriever(k1=args.k1, b=args.b), dense],
                 rrf_k=args.rrf_k,
+                query_transforms=[None, lambda query: args.query_prefix + query],
             )
         else:
             retriever = dense
@@ -198,6 +199,7 @@ def main(argv=None) -> int:
 
     retrieved = {}
     latencies = []
+    hybrid_timing = None
     if args.method == "dense":
         query_texts = [args.query_prefix + query.text for query in eval_queries]
         query_vectors = retriever.encode_queries(query_texts)
@@ -206,10 +208,17 @@ def main(argv=None) -> int:
             results = retriever.search_vector(vector, top_k=args.top_k)
             latencies.append(time.perf_counter() - start)
             retrieved[query.query_id] = [doc_id for doc_id, _ in results]
+    elif args.method == "hybrid":
+        raw_queries = [query.text for query in eval_queries]
+        fused = retriever.search_batch(raw_queries, top_k=args.top_k)
+        hybrid_timing = retriever.last_batch_timing
+        latencies = list(hybrid_timing["per_query_end_to_end"])
+        for query, results in zip(eval_queries, fused):
+            retrieved[query.query_id] = [doc_id for doc_id, _ in results]
     else:
         for query in eval_queries:
             start = time.perf_counter()
-            results = retriever.search(args.query_prefix + query.text, top_k=args.top_k)
+            results = retriever.search(query.text, top_k=args.top_k)
             latencies.append(time.perf_counter() - start)
             retrieved[query.query_id] = [doc_id for doc_id, _ in results]
 
@@ -271,6 +280,28 @@ def main(argv=None) -> int:
             "search_mean_seconds": round(statistics.mean(latencies), 6),
             "search_median_seconds": round(statistics.median(latencies), 6),
         }
+    elif args.method == "hybrid":
+        timing = {
+            "load_seconds": round(load_seconds, 4),
+            "model_load_seconds": round(model_load_seconds, 4),
+            "doc_cache_load_seconds": round(dense.timing["doc_cache_load"], 4),
+            "corpus_encode_seconds": round(dense.timing["corpus_encode"], 4),
+            "query_cache_load_seconds": round(dense.timing["query_cache_load"], 4),
+            "query_encode_seconds": round(hybrid_timing["query_encode"], 4),
+            "index_seconds": round(index_seconds, 4),
+            "bm25_search_seconds": round(hybrid_timing["bm25_search"], 4),
+            "dense_search_seconds": round(hybrid_timing["dense_search"], 4),
+            "rrf_fusion_seconds": round(hybrid_timing["rrf_fusion"], 4),
+            "vector_search_total_seconds": round(
+                hybrid_timing["bm25_search"]
+                + hybrid_timing["dense_search"]
+                + hybrid_timing["rrf_fusion"],
+                4,
+            ),
+            "search_total_seconds": round(sum(latencies), 4),
+            "search_mean_seconds": round(statistics.mean(latencies), 6),
+            "search_median_seconds": round(statistics.median(latencies), 6),
+        }
     else:
         timing = {
             "load_seconds": round(load_seconds, 4),
@@ -328,9 +359,13 @@ def main(argv=None) -> int:
               f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
     elif args.method == "hybrid":
         print(f"耗时: 加载 {load_seconds:.2f}s  模型 {model_load_seconds:.2f}s  "
-              f"建索引 {index_seconds:.2f}s  "
-              f"检索总计 {sum(latencies):.3f}s  "
-              f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
+              f"文档缓存 {timing['doc_cache_load_seconds']:.2f}s  "
+              f"语料编码 {timing['corpus_encode_seconds']:.2f}s  "
+              f"查询编码 {timing['query_encode_seconds']:.2f}s")
+        print(f"      BM25 检索 {timing['bm25_search_seconds']:.3f}s  "
+              f"Dense 检索 {timing['dense_search_seconds']:.3f}s  "
+              f"RRF 融合 {timing['rrf_fusion_seconds']:.3f}s  "
+              f"端到端单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
               f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
     else:
         print(f"耗时: 加载 {load_seconds:.2f}s  建索引 {index_seconds:.2f}s  "

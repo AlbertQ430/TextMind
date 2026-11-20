@@ -1,0 +1,66 @@
+{
+  "dataset": {
+    "name": "scifact",
+    "corpus_size": 5183,
+    "queries_size": 300,
+    "qrels_pairs": 339
+  },
+  "config": {
+    "method": "hybrid",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "query_prefix": "",
+    "k1": 1.2,
+    "b": 0.75,
+    "rrf_k": 60
+  },
+  "metrics": {
+    "P@1": 0.5933333333333334,
+    "R@1": 0.5723333333333334,
+    "NDCG@1": 0.5933333333333334,
+    "P@5": 0.16866666666666716,
+    "R@5": 0.7683888888888888,
+    "NDCG@5": 0.6895188705800682,
+    "P@10": 0.09333333333333367,
+    "R@10": 0.8287222222222222,
+    "NDCG@10": 0.7111346427021523,
+    "P@100": 0.010833333333333266,
+    "R@100": 0.9533333333333334,
+    "NDCG@100": 0.7391070283095973,
+    "MRR": 0.6841587400099624
+  },
+  "num_queries": 300,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.0139,
+    "model_load_seconds": 4.5497,
+    "doc_cache_load_seconds": 0.0094,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0046,
+    "query_encode_seconds": 0.0046,
+    "index_seconds": 0.1854,
+    "bm25_search_seconds": 0.7276,
+    "dense_search_seconds": 0.1401,
+    "rrf_fusion_seconds": 0.0086,
+    "vector_search_total_seconds": 0.8762,
+    "search_total_seconds": 0.8762,
+    "search_mean_seconds": 0.002921,
+    "search_median_seconds": 0.002919
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

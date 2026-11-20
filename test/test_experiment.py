@@ -81,6 +81,18 @@ class TestValidateArgs(unittest.TestCase):
         )
         self.assertEqual(args.query_prefix, "Represent: ")
 
+    def test_hybrid_valid(self):
+        args = validate_args(
+            parse_args(["--method", "hybrid", "--model", "m", "--rrf-k", "10"])
+        )
+        self.assertEqual(args.method, "hybrid")
+        self.assertEqual(args.rrf_k, 10)
+
+    def test_hybrid_rrf_k_rejected(self):
+        args = parse_args(["--method", "hybrid", "--rrf-k", "0"])
+        with self.assertRaises(ValueError):
+            validate_args(args)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

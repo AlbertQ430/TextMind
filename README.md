@@ -90,8 +90,8 @@ SciFact test split（300 queries），统一流程与评价口径：
 | Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
 | Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
 | Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
-| Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | **0.5900** | **0.7094** | 0.9533 | **0.6820** |
-| Hybrid：BM25 + Qwen3-Embedding-0.6B + 自定义前缀（RRF） | 0.5867 | 0.7047 | **0.9567** | 0.6771 |
+| Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | 0.5933 | 0.7111 | 0.9533 | 0.6842 |
+| Hybrid：BM25 + Qwen3-Embedding-0.6B + 自定义前缀（RRF） | **0.6033** | **0.7165** | 0.9567 | **0.6896** |
 
 完整汇总（含索引、查询编码与向量检索耗时）由 `python src/scripts/compare_experiments.py`
 生成，见 `data/evaluation/summary.md`。耗时列反映当次运行状态：命中缓存时
@@ -100,6 +100,11 @@ SciFact test split（300 queries），统一流程与评价口径：
 说明：查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
 Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果分开记录，
 不可直接混用比较；正式结论需注明所用配置。
+
+Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总表「检索均值」
+为单条查询端到端检索耗时（不含 Query 编码），Dense 行仅含向量检索，Hybrid 行
+含 BM25 检索 + Dense 检索 + RRF 融合。旧版 Hybrid 结果（前缀误传给 BM25）已
+归档到 `data/evaluation/archive/`，不参与正式汇总。
 
 ## 项目状态
 

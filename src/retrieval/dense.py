@@ -80,7 +80,6 @@ class DenseRetriever(Retriever):
             "query_cache_load": 0.0,
             "query_encode": 0.0,
         }
-        self._cache_meta_outdated = False
 
     # ------------------------------------------------------------------ 编码
     def _encode(self, texts: Sequence[str]) -> np.ndarray:
@@ -94,6 +93,16 @@ class DenseRetriever(Retriever):
         if matrix.ndim != 2:
             raise ValueError(f"编码器应返回二维矩阵，实际形状 {matrix.shape}")
         return _l2_normalize(matrix)
+
+    def _meta_matches(self, meta: dict) -> bool:
+        """校验缓存版本与模型标识，不匹配时缓存失效。"""
+        if meta.get("version") != CACHE_VERSION:
+            return False
+        if self.model_name is not None and meta.get("model_name") != self.model_name:
+            return False
+        if self.model_revision is not None and meta.get("revision") != self.model_revision:
+            return False
+        return True
 
     # ------------------------------------------------------------------ 缓存
     def _fingerprint(self, texts: Sequence[str]) -> str:
@@ -128,22 +137,15 @@ class DenseRetriever(Retriever):
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
+        if not self._meta_matches(meta):
+            return None
         if (
             meta.get("doc_ids") != self.doc_ids
             or embeddings.ndim != 2
             or embeddings.shape[0] != len(self.doc_ids)
+            or meta.get("dim") != embeddings.shape[1]
         ):
             return None
-        meta_model = meta.get("model_name")
-        if meta_model is not None and self.model_name is not None:
-            if meta_model != self.model_name:
-                return None
-        # 旧版本缓存缺少模型元数据时，命中后重写 meta
-        self._cache_meta_outdated = (
-            "version" not in meta
-            or "model_name" not in meta
-            or "revision" not in meta
-        )
         return embeddings.astype(np.float32)
 
     def _save_cached(self, embeddings: np.ndarray, texts: Sequence[str]) -> None:
@@ -166,7 +168,6 @@ class DenseRetriever(Retriever):
             ),
             encoding="utf-8",
         )
-        self._cache_meta_outdated = False
 
     def _load_query_cached(self, queries: Sequence[str]) -> Optional[np.ndarray]:
         if self.cache_dir is None:
@@ -179,7 +180,13 @@ class DenseRetriever(Retriever):
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-        if meta.get("queries") != list(queries) or vectors.shape[0] != len(queries):
+        if not self._meta_matches(meta):
+            return None
+        if (
+            meta.get("queries") != list(queries)
+            or vectors.shape[0] != len(queries)
+            or meta.get("dim") != vectors.shape[1]
+        ):
             return None
         return vectors.astype(np.float32)
 
@@ -217,8 +224,6 @@ class DenseRetriever(Retriever):
         self.timing["doc_cache_load"] = time.perf_counter() - start
         if cached is not None:
             self.embeddings = cached
-            if self._cache_meta_outdated:
-                self._save_cached(self.embeddings, texts)
         else:
             start = time.perf_counter()
             self.embeddings = self._encode(texts)

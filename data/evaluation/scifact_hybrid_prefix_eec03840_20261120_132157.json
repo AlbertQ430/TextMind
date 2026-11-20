@@ -1,0 +1,66 @@
+{
+  "dataset": {
+    "name": "scifact",
+    "corpus_size": 5183,
+    "queries_size": 300,
+    "qrels_pairs": 339
+  },
+  "config": {
+    "method": "hybrid",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+    "k1": 1.2,
+    "b": 0.75,
+    "rrf_k": 60
+  },
+  "metrics": {
+    "P@1": 0.6033333333333334,
+    "R@1": 0.5798333333333334,
+    "NDCG@1": 0.6033333333333334,
+    "P@5": 0.1706666666666672,
+    "R@5": 0.7778333333333333,
+    "NDCG@5": 0.6957641602786178,
+    "P@10": 0.09366666666666702,
+    "R@10": 0.8345555555555556,
+    "NDCG@10": 0.7164523972812952,
+    "P@100": 0.010866666666666597,
+    "R@100": 0.9566666666666667,
+    "NDCG@100": 0.7445094320602531,
+    "MRR": 0.6896086780156727
+  },
+  "num_queries": 300,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.0139,
+    "model_load_seconds": 4.9856,
+    "doc_cache_load_seconds": 0.0073,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0047,
+    "query_encode_seconds": 0.0047,
+    "index_seconds": 0.1981,
+    "bm25_search_seconds": 0.7265,
+    "dense_search_seconds": 0.1425,
+    "rrf_fusion_seconds": 0.0092,
+    "vector_search_total_seconds": 0.8782,
+    "search_total_seconds": 0.8782,
+    "search_mean_seconds": 0.002927,
+    "search_median_seconds": 0.002944
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

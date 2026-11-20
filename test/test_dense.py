@@ -188,6 +188,73 @@ class TestDenseRetriever(unittest.TestCase):
             self.assertEqual(meta["revision"], "abc123")
             self.assertEqual(meta["version"], 2)
 
+    def test_cache_invalidated_on_revision_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev1"
+            ).fit(make_docs())
+            self.assertEqual(encoder.calls, 1)
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev1"
+            ).fit(make_docs())
+            self.assertEqual(encoder.calls, 1)  # 同 revision 命中缓存
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev2"
+            ).fit(make_docs())
+            self.assertEqual(encoder.calls, 2)  # revision 变化 → 缓存失效
+
+    def test_cache_invalidated_on_model_name_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_name="m1"
+            ).fit(make_docs())
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_name="m1"
+            ).fit(make_docs())
+            self.assertEqual(encoder.calls, 1)
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_name="m2"
+            ).fit(make_docs())
+            self.assertEqual(encoder.calls, 2)
+
+    def test_cache_invalidated_on_version_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(make_docs())
+            meta_path = next(Path(tmp).glob("*.json"))
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            meta["version"] = 1
+            meta_path.write_text(json.dumps(meta), encoding="utf-8")
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(make_docs())
+            self.assertEqual(encoder.calls, 2)
+
+    def test_query_cache_invalidated_on_revision_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "q1": (1.0, 0.0),
+            }
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev1"
+            ).fit(make_docs()).encode_queries(["q1"])
+            self.assertEqual(encoder.calls, 2)  # fit + 查询编码
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev1"
+            ).fit(make_docs()).encode_queries(["q1"])
+            self.assertEqual(encoder.calls, 2)  # 文档与查询均命中
+            DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake", model_revision="rev2"
+            ).fit(make_docs()).encode_queries(["q1"])
+            self.assertEqual(encoder.calls, 4)  # 文档与查询缓存均失效
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

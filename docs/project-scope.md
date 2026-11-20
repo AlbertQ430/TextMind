@@ -80,6 +80,9 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
       汇总表见 `data/evaluation/summary.md`。
 - [x] 自定义查询前缀对照实验：Qwen3-Embedding-0.6B + 自定义前缀（NDCG@10 = 0.7003）、
       BGE-M3 + 自定义前缀（NDCG@10 = 0.6502）。
-- [x] Hybrid Retrieval（BM25 + Dense + RRF，rrf_k = 60）：NDCG@10 = 0.7094。
+- [x] Hybrid Retrieval（BM25 + Dense + RRF，rrf_k = 60）：无前缀 NDCG@10 = 0.7111，
+      自定义前缀 0.7165；BM25 始终使用原始 Query，仅 Dense 使用前缀。
+- [x] Hybrid 耗时拆分（Query Encoding / BM25 检索 / Dense 检索 / RRF 融合 / 端到端检索）；
+      缓存校验纳入 model_name、revision 与缓存版本号。
 - [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。
