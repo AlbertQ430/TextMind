@@ -1,0 +1,68 @@
+{
+  "dataset": {
+    "name": "duretrieval",
+    "corpus_size": 100001,
+    "queries_size": 2000,
+    "qrels_pairs": 9839
+  },
+  "config": {
+    "dataset": "duretrieval",
+    "method": "hybrid",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "BAAI/bge-small-zh-v1.5",
+    "model_revision": "7999e1d3359715c523056ef9478215996d62a620",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+    "k1": 1.2,
+    "b": 0.75,
+    "rrf_k": 60,
+    "tokenizer": "simple"
+  },
+  "metrics": {
+    "P@1": 0.766,
+    "R@1": 0.20909752184845412,
+    "NDCG@1": 0.766,
+    "P@5": 0.5572999999999994,
+    "R@5": 0.6263445215777288,
+    "NDCG@5": 0.716982353314655,
+    "P@10": 0.36880000000000185,
+    "R@10": 0.7742571772726669,
+    "NDCG@10": 0.7473998607009198,
+    "P@100": 0.04640000000000013,
+    "R@100": 0.937876646001148,
+    "NDCG@100": 0.8012425094486605,
+    "MRR": 0.8340771757919719
+  },
+  "num_queries": 2000,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.2476,
+    "model_load_seconds": 1.5745,
+    "doc_cache_load_seconds": 0.1115,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0015,
+    "query_encode_seconds": 0.0015,
+    "index_seconds": 0.659,
+    "bm25_search_seconds": 0.8975,
+    "dense_search_seconds": 15.5431,
+    "rrf_fusion_seconds": 0.0351,
+    "vector_search_total_seconds": 16.4757,
+    "search_total_seconds": 16.4757,
+    "search_mean_seconds": 0.008238,
+    "search_median_seconds": 0.0078
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

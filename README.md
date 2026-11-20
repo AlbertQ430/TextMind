@@ -86,6 +86,8 @@ python test/test_similarity.py
 | 数据集 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
 | --- | --- | --- | --- | --- | --- |
 | DuRetrieval dev | BM25（jieba 分词） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
+| DuRetrieval dev | Dense：bge-small-zh-v1.5 + 自定义前缀 | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
+| DuRetrieval dev | Hybrid：BM25 + bge-small-zh-v1.5（RRF） | 0.7660 | 0.7474 | 0.9379 | 0.8341 |
 | SciFact test | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
 | SciFact test | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
 | SciFact test | Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
@@ -101,6 +103,10 @@ python test/test_similarity.py
 
 说明：不同数据集的指标不可直接横向比较（语料、query 与 qrels 不同）；
 DuRetrieval 使用 dev split 的 9,839 条 qrels。
+
+DuRetrieval 上 Hybrid（等权 RRF）低于 Dense 单路：BM25 在该数据集上的检索质量
+明显弱于 Dense（NDCG@10 0.5931 vs 0.7900），融合时被稀释；RRF 的收益依赖
+两路信号强度接近（SciFact 上两路接近，Hybrid 即优于单路）。
 
 查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
 Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果分开记录，

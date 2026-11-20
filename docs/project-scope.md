@@ -86,5 +86,8 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
       缓存校验纳入 model_name、revision 与缓存版本号。
 - [x] 中文正式实验数据集：DuRetrieval（C-MTEB 子集，授权核验与格式验证完成）。
 - [x] 中文 BM25 基线（jieba 分词）：DuRetrieval dev，NDCG@10 = 0.5931，MRR = 0.7420。
+- [x] 中文 Dense（bge-small-zh-v1.5 + 自定义前缀）：NDCG@10 = 0.7900，MRR = 0.8787。
+- [x] 中文 Hybrid（BM25 + Dense + RRF）：NDCG@10 = 0.7474（低于 Dense 单路，
+      BM25 信号较弱被稀释）。
 - [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。
