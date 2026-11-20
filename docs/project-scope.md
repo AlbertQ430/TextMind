@@ -89,7 +89,8 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
 - [x] 中文 Dense（bge-small-zh-v1.5 + 自定义前缀）：NDCG@10 = 0.7900，MRR = 0.8787。
 - [x] 中文 Hybrid（BM25 + Dense + RRF，jieba 分词）：NDCG@10 = 0.7233（低于
       Dense 单路；此前 simple 分词版 0.7474 已归档，不参与正式结论）。
-- [x] 加权 RRF 实验：DuRetrieval 上 BM25 权重 0.5/0.3/0.2/0.1 扫描，0.1 时
-      NDCG@10 = 0.7871（优于等权 0.7233，仍略低于 Dense 单路 0.7900）；
-      SciFact 权重 0.5 时 NDCG@10 = 0.7220。
+- [x] 加权 RRF 参数探索（DuRetrieval dev split）：BM25 权重 0.5/0.3/0.2/0.1 扫描，
+      0.1 为当前范围内的最佳配置（NDCG@10 = 0.7871），仍略低于 Dense 单路 0.7900；
+      该结果为 dev 调参，不代表独立测试集上的泛化表现。
 - [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
+- [ ] 下一阶段重点：课程报告、图表与展示材料整理。

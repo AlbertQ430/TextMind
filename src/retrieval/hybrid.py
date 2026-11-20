@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -39,8 +40,12 @@ class HybridRetriever(Retriever):
         if weights is not None:
             if len(weights) != len(retrievers):
                 raise ValueError("weights 长度必须与 retrievers 一致")
+            if any(not math.isfinite(weight) for weight in weights):
+                raise ValueError(f"weights 必须是有限数值，实际 {weights}")
             if any(weight < 0 for weight in weights):
                 raise ValueError(f"weights 必须非负，实际 {weights}")
+            if all(weight == 0 for weight in weights):
+                raise ValueError("weights 不能全为 0")
         self.retrievers = list(retrievers)
         self.rrf_k = rrf_k
         self.candidate_depth = candidate_depth
@@ -75,6 +80,8 @@ class HybridRetriever(Retriever):
         weights: Optional[Sequence[float]] = None,
     ) -> List[Tuple[str, float]]:
         """加权 Reciprocal Rank Fusion：``score(d) = Σ wᵢ / (rrf_k + rank_i)``。"""
+        if weights is not None and len(weights) != len(rankings):
+            raise ValueError("weights 长度必须与 rankings 一致")
         fused: Dict[str, float] = {}
         for index, ranking in enumerate(rankings):
             weight = weights[index] if weights is not None else 1.0

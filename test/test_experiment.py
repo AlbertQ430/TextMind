@@ -117,6 +117,17 @@ class TestValidateArgs(unittest.TestCase):
                 parse_args(["--method", "hybrid", "--rrf-weights", "-0.1", "1.0"])
             )
 
+    def test_hybrid_rrf_weights_nan_or_inf_rejected(self):
+        for bad in ("nan", "inf"):
+            with self.assertRaises(ValueError):
+                validate_args(
+                    parse_args(["--method", "hybrid", "--rrf-weights", bad, "1.0"])
+                )
+
+    def test_hybrid_rrf_weights_all_zero_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_args(parse_args(["--method", "hybrid", "--rrf-weights", "0", "0"]))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

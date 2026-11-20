@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import platform
 import statistics
 import sys
@@ -132,8 +133,12 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
                 raise ValueError(
                     f"--rrf-weights 需要 2 个值（BM25, Dense），实际 {args.rrf_weights}"
                 )
+            if any(not math.isfinite(weight) for weight in args.rrf_weights):
+                raise ValueError(f"--rrf-weights 必须是有限数值，实际 {args.rrf_weights}")
             if any(weight < 0 for weight in args.rrf_weights):
                 raise ValueError(f"--rrf-weights 必须非负，实际 {args.rrf_weights}")
+            if all(weight == 0 for weight in args.rrf_weights):
+                raise ValueError("--rrf-weights 不能全为 0")
 
     args.k = ks
     return args

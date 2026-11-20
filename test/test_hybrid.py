@@ -109,6 +109,16 @@ class TestHybridRetriever(unittest.TestCase):
             HybridRetriever([FakeRetriever({}), FakeRetriever({})], weights=[1.0])
         with self.assertRaises(ValueError):
             HybridRetriever([FakeRetriever({})], weights=[-1.0])
+        with self.assertRaises(ValueError):
+            HybridRetriever([FakeRetriever({})], weights=[float("nan")])
+        with self.assertRaises(ValueError):
+            HybridRetriever([FakeRetriever({})], weights=[float("inf")])
+        with self.assertRaises(ValueError):
+            HybridRetriever([FakeRetriever({}), FakeRetriever({})], weights=[0.0, 0.0])
+
+    def test_rrf_fuse_weight_length_mismatch(self):
+        with self.assertRaises(ValueError):
+            HybridRetriever.rrf_fuse([[("a", 1.0)]], 60, 1, weights=[1.0, 1.0])
 
     def test_fit_propagates(self):
         first, second = FakeRetriever({}), FakeRetriever({})

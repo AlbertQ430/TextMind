@@ -122,10 +122,11 @@ Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总
 含 BM25 检索 + Dense 检索 + RRF 融合。旧版 Hybrid 结果（前缀误传给 BM25）已
 归档到 `data/evaluation/archive/`，不参与正式汇总。
 
-## 加权 RRF 实验
+## 加权 RRF 实验（DuRetrieval dev 参数探索）
 
 错误分析显示，DuRetrieval 上 BM25 明显弱于 Dense，等权 RRF 会稀释 Dense 信号。
-对 Hybrid 做 BM25 权重扫描（Dense 权重固定 1.0，rrf_k=60）：
+在 **DuRetrieval dev split（2,000 queries）** 上对 Hybrid 做 BM25 权重扫描
+（Dense 权重固定 1.0，rrf_k=60），属于开发集上的参数探索：
 
 | BM25 权重 | P@1 | NDCG@10 | MRR |
 | --- | --- | --- | --- |
@@ -136,9 +137,11 @@ Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总
 | 0.1 | 0.8145 | 0.7871 | 0.8716 |
 | Dense 单路（参考） | 0.8260 | 0.7900 | 0.8787 |
 
-结论：降权显著优于等权，但最优仍略低于 Dense 单路——RRF 只保留排名、丢失分数
-间隔信息，且 BM25 噪声仍进入 top-10。SciFact 上 BM25 权重 0.5 小幅提升
-（NDCG@10 0.7165 → 0.7220，R@100 0.9567 → 0.9700）。
+结论：在当前搜索范围（0.1~1.0）内，BM25 权重 0.1 的配置最佳，但仍略低于
+Dense 单路——RRF 只保留排名、丢失分数间隔信息，且 BM25 噪声仍进入 top-10。
+该结果来自 dev split 调参，**不代表在独立测试集上的泛化表现**，正式结论需在
+留出测试集上复核。SciFact 上 BM25 权重 0.5 小幅提升（NDCG@10 0.7165 → 0.7220，
+R@100 0.9567 → 0.9700）。
 
 ## 项目状态
 
@@ -147,7 +150,7 @@ Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总
 以及 Hybrid（BM25 + Dense + RRF）融合实验；并完成 DuRetrieval 中文数据集上的
 BM25 基线（jieba 分词）。实验汇总表与图表均已生成。
 
-下一步优先：结果错误分析与更多图表；课程展示材料整理。
+下一阶段重点：课程报告撰写、图表与展示材料整理。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
 
