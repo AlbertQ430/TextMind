@@ -54,7 +54,7 @@ TextMind 已完成一轮文本检索算法实验，相关实验代码与成果�
 | SciFact test | Dense：Qwen3-Embedding-0.6B（有前缀） | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
 | SciFact test | Hybrid：BM25 + Qwen3（有前缀，RRF） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
 
-DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完成，不应解读为独立测试集上的泛化结论。更多结果和实验口径见 [实验结果与分析](docs/experiments/README.md)（如该目录尚未整理完成，以仓库现有实验文件为准）。
+DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完成，不应解读为独立测试集上的泛化结论。更多结果和实验口径见 实验汇总表由 `data/evaluation/summary.md` 生成；详细错误分析见 [DuRetrieval 错误分析](docs/error-analysis.md)。
 
 ## 文档导航
 
