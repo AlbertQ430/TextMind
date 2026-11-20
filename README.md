@@ -72,7 +72,8 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 
 - [当前产品范围与 MVP](docs/project-scope.md)
 - [已确认的产品决策](docs/requirements/confirmed-decisions.md)
-- [当前待讨论事项](docs/requirements/open-questions.md)
+- [软件需求规格说明书（SRS，草案 v0.1）](docs/requirements/SRS.md)
+- [SRS / 技术设计待处理事项](docs/requirements/open-questions.md)
 - [检索实验与执行约定](docs/requirements/retrieval-lab.md)
 - [数据集调研记录](docs/datasets.md)
 - [技术验证记录](docs/technical-validation.md)
@@ -80,4 +81,4 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 
 ## 当前阶段说明
 
-实验算法与数据分析阶段已形成可复用成果。当前工作重心转为需求探索和软件化设计，尚未冻结完整 SRS，也不应将本文中的产品决策视为已经实现的软件功能。具体预设实验清单、页面内部交互和技术框架仍在讨论中。
+实验算法与数据分析阶段已形成可复用成果。当前已形成实验演示型 MVP 的 SRS 草案 v0.1，尚待需求评审；本文和需求文档描述的是目标要求，不代表软件功能已经实现。技术框架、JSON Schema、资源目录约定和具体运行机制将在后续技术设计阶段确定。
