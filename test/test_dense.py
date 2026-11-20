@@ -255,6 +255,28 @@ class TestDenseRetriever(unittest.TestCase):
             ).fit(make_docs()).encode_queries(["q1"])
             self.assertEqual(encoder.calls, 4)  # 文档与查询缓存均失效
 
+    def test_query_cache_invalidated_on_1d_vector(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "q1": (1.0, 0.0),
+            }
+            encoder = CountingEncoder(mapping)
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(
+                make_docs()
+            ).encode_queries(["q1"])
+            self.assertEqual(encoder.calls, 2)
+            # 将查询缓存 npy 改为 1 维（损坏），加载时应判定失效而不是 IndexError
+            npy_paths = list(Path(tmp).glob("*queries*.npy"))
+            self.assertEqual(len(npy_paths), 1)
+            np.save(npy_paths[0], np.array([1.0, 0.0], dtype=np.float32))
+            DenseRetriever(encoder, cache_dir=tmp, cache_key="fake").fit(
+                make_docs()
+            ).encode_queries(["q1"])
+            self.assertEqual(encoder.calls, 3)  # 文档命中，查询缓存失效后重新编码
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

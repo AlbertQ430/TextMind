@@ -62,9 +62,9 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
 - Apple Silicon MPS 已验证可用。
 - Qwen/Qwen3-Embedding-0.6B 已验证可以在 MPS 上加载并输出向量。
 - BM25 已实现（倒排索引、文档长度归一化、可注入分词器），并通过单元测试。
-- Dense Retrieval 已实现（Embedding 编码 + 余弦相似度检索），Qwen3-Embedding-0.6B 已接入。
+- Dense Retrieval 已实现（Embedding 编码 + 余弦相似度检索），Qwen3-Embedding-0.6B 与 bge-small-zh-v1.5（中文）已接入。
 - 数据集加载与校验、评价指标（P@K / R@K / MRR / NDCG@K）已完成。
-- SciFact 已完成流程验证：加载、BM25 检索、评价与结果落盘。
+- SciFact 与 DuRetrieval（中文）均已完成实验闭环：加载、BM25 / Dense / Hybrid 检索、评价与结果落盘。
 
 ## 7. 阶段进展
 
@@ -87,7 +87,6 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
 - [x] 中文正式实验数据集：DuRetrieval（C-MTEB 子集，授权核验与格式验证完成）。
 - [x] 中文 BM25 基线（jieba 分词）：DuRetrieval dev，NDCG@10 = 0.5931，MRR = 0.7420。
 - [x] 中文 Dense（bge-small-zh-v1.5 + 自定义前缀）：NDCG@10 = 0.7900，MRR = 0.8787。
-- [x] 中文 Hybrid（BM25 + Dense + RRF）：NDCG@10 = 0.7474（低于 Dense 单路，
-      BM25 信号较弱被稀释）。
+- [x] 中文 Hybrid（BM25 + Dense + RRF，jieba 分词）：NDCG@10 = 0.7233（低于
+      Dense 单路；此前 simple 分词版 0.7474 已归档，不参与正式结论）。
 - [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
-- [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。

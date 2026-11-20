@@ -184,6 +184,7 @@ class DenseRetriever(Retriever):
             return None
         if (
             meta.get("queries") != list(queries)
+            or vectors.ndim != 2
             or vectors.shape[0] != len(queries)
             or meta.get("dim") != vectors.shape[1]
         ):

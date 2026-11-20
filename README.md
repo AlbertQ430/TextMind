@@ -87,7 +87,7 @@ python test/test_similarity.py
 | --- | --- | --- | --- | --- | --- |
 | DuRetrieval dev | BM25（jieba 分词） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
 | DuRetrieval dev | Dense：bge-small-zh-v1.5 + 自定义前缀 | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
-| DuRetrieval dev | Hybrid：BM25 + bge-small-zh-v1.5（RRF） | 0.7660 | 0.7474 | 0.9379 | 0.8341 |
+| DuRetrieval dev | Hybrid：BM25 + bge-small-zh-v1.5（RRF，jieba） | 0.7825 | 0.7233 | 0.9338 | 0.8431 |
 | SciFact test | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
 | SciFact test | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
 | SciFact test | Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
@@ -105,8 +105,12 @@ python test/test_similarity.py
 DuRetrieval 使用 dev split 的 9,839 条 qrels。
 
 DuRetrieval 上 Hybrid（等权 RRF）低于 Dense 单路：BM25 在该数据集上的检索质量
-明显弱于 Dense（NDCG@10 0.5931 vs 0.7900），融合时被稀释；RRF 的收益依赖
-两路信号强度接近（SciFact 上两路接近，Hybrid 即优于单路）。
+明显弱于 Dense（NDCG@10 0.5931 vs 0.7900），等权融合稀释了 Dense 的排序；
+RRF 的收益依赖两路信号强度接近（SciFact 上两路接近，Hybrid 即优于单路）。
+
+返修记录：此前 DuRetrieval Hybrid 实验误用 simple 分词器（中文分词失效、BM25
+近乎空转），该结果（NDCG@10 0.7474）已归档到 `data/evaluation/archive/`；
+修正为 jieba 后 BM25 真实参与融合，NDCG@10 = 0.7233、MRR = 0.8431。
 
 查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
 Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果分开记录，
@@ -124,7 +128,7 @@ Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总
 以及 Hybrid（BM25 + Dense + RRF）融合实验；并完成 DuRetrieval 中文数据集上的
 BM25 基线（jieba 分词）。实验汇总表与图表均已生成。
 
-下一步优先：中文数据集上的 Dense / Hybrid 实验；结果错误分析与更多图表。
+下一步优先：结果错误分析与更多图表；课程展示材料整理。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
 
