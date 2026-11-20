@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -97,6 +98,74 @@ def plot_efficiency(results: list[dict], output: Path) -> None:
     plt.close(fig)
 
 
+def plot_rrf_weights(results: list[dict], output: Path) -> None:
+    """DuRetrieval 加权 RRF：NDCG@10 随 BM25 权重变化。"""
+    rows = []
+    for item in results:
+        config = item["config"]
+        if config.get("method") != "hybrid":
+            continue
+        weights = config.get("rrf_weights") or [1.0, 1.0]
+        rows.append((weights[0], item["metrics"].get("NDCG@10", 0.0)))
+    if not rows:
+        return
+    rows.sort()
+    xs = [row[0] for row in rows]
+    ys = [row[1] for row in rows]
+
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.plot(xs, ys, marker="o", label="Hybrid (weighted RRF)")
+    for item in results:
+        config = item["config"]
+        if (
+            config.get("method") == "dense"
+            and config.get("dataset") == "duretrieval"
+            and config.get("query_prefix")
+        ):
+            ax.axhline(
+                item["metrics"].get("NDCG@10", 0.0),
+                linestyle="--",
+                color="gray",
+                label="Dense single (ref)",
+            )
+            break
+    ax.set_xscale("log")
+    ax.set_xlabel("BM25 weight (log)")
+    ax.set_ylabel("NDCG@10")
+    ax.set_title("DuRetrieval: weighted RRF vs BM25 weight")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
+
+
+def plot_error_distribution(error_json: Path, output: Path) -> None:
+    """DuRetrieval dev：query 级诊断分布。"""
+    data = json.loads(error_json.read_text(encoding="utf-8"))
+    methods = data["methods"]
+    names = [
+        ("BM25", "bm25_jieba"),
+        ("Dense", "dense_bge_small_zh"),
+        ("Hybrid", "hybrid_bm25_dense"),
+    ]
+    categories = [("hit_at_1", "hit@1"), ("ranked_low", "ranked_low"), ("miss_top_k", "miss_top_k")]
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    x = np.arange(len(names))
+    bottom = np.zeros(len(names))
+    for category, label in categories:
+        values = [methods[key]["counts"][category] for _, key in names]
+        ax.bar(x, values, bottom=bottom, label=label)
+        bottom += np.array(values)
+    ax.set_xticks(x)
+    ax.set_xticklabels([name for name, _ in names])
+    ax.set_ylabel("queries")
+    ax.set_title("DuRetrieval dev: query-level diagnosis")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="生成实验结果图表")
     parser.add_argument("--dir", default=str(DEFAULT_DIR), help="结果 JSON 目录")
@@ -112,10 +181,19 @@ def main(argv=None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     bars = output_dir / "metrics_bars.png"
     scatter = output_dir / "efficiency.png"
+    weights_png = output_dir / "rrf_weights.png"
     plot_metric_bars(results, bars)
     plot_efficiency(results, scatter)
+    plot_rrf_weights(results, weights_png)
     print(f"已生成: {bars}")
     print(f"已生成: {scatter}")
+    print(f"已生成: {weights_png}")
+
+    error_json = Path(args.dir) / "error_analysis.json"
+    if error_json.exists():
+        error_png = output_dir / "error_distribution.png"
+        plot_error_distribution(error_json, error_png)
+        print(f"已生成: {error_png}")
     return 0
 
 

@@ -9,3 +9,6 @@ data/processed/
 
 # 忽略 DuRetrieval 数据目录：按约定不纳入版本库，可由 docs/datasets.md 记录的 commit 重新下载
 data/raw/duretrieval/
+
+# 导出材料（课程报告 Word / PPT，不入库）
+docs/export/
