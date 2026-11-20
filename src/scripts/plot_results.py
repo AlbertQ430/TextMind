@@ -46,13 +46,24 @@ def short_label(config: dict) -> str:
         suffix = " +prefix" if config.get("query_prefix") else ""
         if method == "hybrid":
             label = f"Hybrid ({model}){suffix}"
+            weights = config.get("rrf_weights")
+            if weights and list(weights) != [1.0, 1.0]:
+                label += f" w={weights[0]:g}"
         else:
             label = f"Dense ({model}){suffix}"
     dataset = config.get("dataset", "scifact")
     return f"{DATASET_LABELS.get(dataset, dataset)}: {label}"
 
 
-def plot_metric_bars(results: list[dict], output: Path) -> None:
+def plot_metric_bars(results: list[dict], output: Path, dataset: str | None = None, title: str | None = None) -> None:
+    if dataset is not None:
+        results = [
+            item
+            for item in results
+            if item.get("config", {}).get("dataset", "scifact") == dataset
+        ]
+    if not results:
+        return
     labels = [short_label(item["config"]) for item in results]
     x = np.arange(len(labels))
     width = 0.8 / len(METRICS)
@@ -73,11 +84,32 @@ def plot_metric_bars(results: list[dict], output: Path) -> None:
     ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("score")
-    ax.set_title("Retrieval metrics (SciFact test / DuRetrieval dev)")
+    ax.set_title(title or "Retrieval metrics (SciFact test / DuRetrieval dev)")
     ax.legend()
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)
+
+
+def _is_representative(config: dict) -> bool:
+    """质量-延迟散点图中需要标注名称的代表性配置。"""
+    dataset = config.get("dataset", "scifact")
+    method = config.get("method")
+    if method == "bm25":
+        return True
+    if method == "dense":
+        model = config.get("model", "")
+        if dataset == "scifact":
+            return model == "Qwen/Qwen3-Embedding-0.6B" and not config.get("query_prefix")
+        return model == "BAAI/bge-small-zh-v1.5"
+    if method == "hybrid":
+        weights = config.get("rrf_weights") or [1.0, 1.0]
+        if weights[1] != 1.0:
+            return False
+        if dataset != "duretrieval":
+            return False
+        return weights[0] in (1.0, 0.1)
+    return False
 
 
 def plot_efficiency(results: list[dict], output: Path) -> None:
@@ -87,53 +119,93 @@ def plot_efficiency(results: list[dict], output: Path) -> None:
         timing = item.get("timing", {})
         latency_ms = timing.get("search_mean_seconds", 0.0) * 1000
         score = item["metrics"].get("NDCG@10", 0.0)
-        ax.scatter(latency_ms, score, s=60)
-        ax.annotate(label, (latency_ms, score), fontsize=7, xytext=(4, 3), textcoords="offset points")
+        representative = _is_representative(item["config"])
+        ax.scatter(latency_ms, score, s=60 if representative else 25)
+        if representative:
+            if "w=0.1" in label:
+                xytext, ha = (-10, 6), "right"
+            elif "bge-small-zh" in label and "Dense" in label:
+                xytext, ha = (6, -14), "left"
+            else:
+                xytext, ha = (4, 3), "left"
+            ax.annotate(
+                label,
+                (latency_ms, score),
+                fontsize=7,
+                xytext=xytext,
+                textcoords="offset points",
+                ha=ha,
+            )
     ax.set_xscale("log")
     ax.set_xlabel("per-query retrieval latency (ms, log; excl. query encoding)")
     ax.set_ylabel("NDCG@10")
-    ax.set_title("Quality vs. retrieval latency (SciFact / DuRetrieval)")
+    ax.set_title("Quality vs. retrieval latency (representative configs)")
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)
 
 
 def plot_rrf_weights(results: list[dict], output: Path) -> None:
-    """DuRetrieval 加权 RRF：NDCG@10 随 BM25 权重变化。"""
-    rows = []
+    """DuRetrieval dev：NDCG@10 随 BM25 权重变化（离散配置点）。"""
+    points = {}
     for item in results:
         config = item["config"]
         if config.get("method") != "hybrid":
             continue
+        if config.get("dataset") != "duretrieval":
+            continue
         weights = config.get("rrf_weights") or [1.0, 1.0]
-        rows.append((weights[0], item["metrics"].get("NDCG@10", 0.0)))
-    if not rows:
+        if weights[1] != 1.0:
+            continue
+        points[float(weights[0])] = item["metrics"].get("NDCG@10", 0.0)
+    if not points:
         return
-    rows.sort()
-    xs = [row[0] for row in rows]
-    ys = [row[1] for row in rows]
 
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    ax.plot(xs, ys, marker="o", label="Hybrid (weighted RRF)")
+    dense_ref = None
     for item in results:
         config = item["config"]
         if (
             config.get("method") == "dense"
             and config.get("dataset") == "duretrieval"
+            and config.get("model", "").endswith("bge-small-zh-v1.5")
             and config.get("query_prefix")
         ):
-            ax.axhline(
-                item["metrics"].get("NDCG@10", 0.0),
-                linestyle="--",
-                color="gray",
-                label="Dense single (ref)",
-            )
+            dense_ref = item["metrics"].get("NDCG@10", 0.0)
             break
-    ax.set_xscale("log")
-    ax.set_xlabel("BM25 weight (log)")
+
+    xs = sorted(points)
+    ys = [points[x] for x in xs]
+    positions = list(range(len(xs)))
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.plot(positions, ys, marker="o", label="Hybrid (weighted RRF)")
+    if dense_ref is not None:
+        ax.axhline(
+            dense_ref,
+            linestyle="--",
+            color="gray",
+            label=f"Dense single (ref {dense_ref:.4f})",
+        )
+    for pos, x, y in zip(positions, xs, ys):
+        if pos == 0:
+            offset, ha = (8, 8), "left"
+        elif pos == len(positions) - 1:
+            offset, ha = (-8, 8), "right"
+        else:
+            offset, ha = (0, 8), "center"
+        ax.annotate(
+            f"{y:.4f}",
+            (pos, y),
+            textcoords="offset points",
+            xytext=offset,
+            ha=ha,
+            fontsize=9,
+        )
+    ax.set_xticks(positions)
+    ax.set_xticklabels([f"{x:g}" for x in xs])
+    ax.set_xlabel("BM25 weight (Dense weight = 1.0)")
     ax.set_ylabel("NDCG@10")
-    ax.set_title("DuRetrieval: weighted RRF vs BM25 weight")
-    ax.legend()
+    ax.set_title("DuRetrieval dev: weighted RRF vs BM25 weight")
+    ax.legend(loc="lower left")
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)
@@ -183,9 +255,23 @@ def main(argv=None) -> int:
     scatter = output_dir / "efficiency.png"
     weights_png = output_dir / "rrf_weights.png"
     plot_metric_bars(results, bars)
+    plot_metric_bars(
+        results,
+        output_dir / "metrics_bars_scifact.png",
+        dataset="scifact",
+        title="SciFact test: retrieval metrics",
+    )
+    plot_metric_bars(
+        results,
+        output_dir / "metrics_bars_duretrieval.png",
+        dataset="duretrieval",
+        title="DuRetrieval dev: retrieval metrics",
+    )
     plot_efficiency(results, scatter)
     plot_rrf_weights(results, weights_png)
     print(f"已生成: {bars}")
+    print(f"已生成: {output_dir / 'metrics_bars_scifact.png'}")
+    print(f"已生成: {output_dir / 'metrics_bars_duretrieval.png'}")
     print(f"已生成: {scatter}")
     print(f"已生成: {weights_png}")
 

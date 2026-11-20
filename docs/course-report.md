@@ -5,7 +5,7 @@
 
 ## 摘要
 
-本项目构建了一个最小可复现的文本检索实验闭环，在同一数据集与统一评价口径下比较三种检索方法：BM25 关键词检索、Dense Retrieval（Embedding 编码 + 余弦相似度）与 Hybrid Retrieval（RRF 融合）。实验在英文 SciFact（300 条 test query）与中文 DuRetrieval（C-MTEB 子集，2,000 条 dev query）上进行，评价指标包括 P@K、R@K、MRR 与 NDCG@K，并分别记录语料编码、查询编码与向量检索耗时。结果表明：Dense 明显优于 BM25；模型官方查询前缀能显著提升效果；Hybrid 的收益依赖两路检索器信号强度接近，在 BM25 明显较弱时等权 RRF 反而稀释 Dense 排序，加权 RRF 可缓解但不能完全消除该损失。项目代码、实验配置、结果 JSON 与图表均已入库，可通过固定命令复现。
+本项目构建了一个最小可复现的文本检索实验闭环，在同一数据集与统一评价口径下比较三种检索方法：BM25 关键词检索、Dense Retrieval（Embedding 编码 + 余弦相似度）与 Hybrid Retrieval（RRF 融合）。实验在英文 SciFact（300 条 test query）与中文 DuRetrieval（C-MTEB 子集，2,000 条 dev query）上进行，评价指标包括 P@K、R@K、MRR 与 NDCG@K，并分别记录语料编码、查询编码与向量检索耗时。结果表明：Dense 明显优于 BM25；查询侧指令能不同程度提升效果（Qwen3 按官方推荐 Instruct 格式构造、BGE-M3 使用自定义查询前缀）；在本项目实验中，当两路检索器信号强度接近时 Hybrid 优于单路，差距较大时等权 RRF 反而削弱较强一路，加权 RRF 可缓解但不能完全消除该损失。项目代码、实验配置、结果 JSON 与图表均已入库，可通过固定命令复现。
 
 ## 1 引言
 
@@ -17,7 +17,7 @@
 
 - **RQ1**：BM25 与 Dense Retrieval 在同一数据集上的效果差距有多大？
 - **RQ2**：不同 Embedding 模型（Qwen3-Embedding-0.6B、BGE-M3、all-MiniLM-L6-v2、bge-small-zh-v1.5）表现如何？
-- **RQ3**：模型官方推荐的查询前缀对检索效果的影响？
+- **RQ3**：查询侧指令（Qwen3 按官方推荐 Instruct 格式、BGE-M3 自定义前缀）对检索效果的影响？
 - **RQ4**：Hybrid（RRF 融合）在什么条件下优于单路检索？加权 RRF 能否改善？
 - **RQ5**：错误主要来自排序还是召回？错误类型有哪些特征？
 
@@ -62,7 +62,7 @@ $$
 - **指标**：P@K、R@K、MRR、NDCG@K（K ∈ {1, 5, 10, 100}），宏平均；无相关标注的 query 跳过并计数（本实验未出现）。
 - **耗时拆分**：数据集加载、模型加载、文档缓存加载、语料编码、查询缓存加载、查询编码、向量检索；检索均值口径为单条查询端到端检索耗时（不含查询编码）。
 - **可复现性**：固定数据集下载 commit；结果 JSON 记录模型名、revision、设备、参数与耗时；实验命令与数据说明见 README。
-- **硬件/环境**：Apple M5，PyTorch 2.15.0，sentence-transformers 6.3.0，MPS 推理。
+- **硬件/环境**（2026-11-20 于实验环境实测核验）：Apple M5，Python 3.11.18，PyTorch 2.15.0，sentence-transformers 6.3.0，MPS 可用。
 
 ## 6 实验结果
 
@@ -72,35 +72,47 @@ $$
 | --- | --- | --- | --- | --- |
 | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
 | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
-| Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
+| Dense：Qwen3-Embedding-0.6B（官方推荐 Instruct 格式） | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
 | Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
 | Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
-| Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
+| Dense：BGE-M3 + 自定义查询前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
 | Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | 0.5933 | 0.7111 | 0.9533 | 0.6842 |
-| Hybrid + 自定义前缀（RRF） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
-| Hybrid + 自定义前缀（RRF，BM25 权重 0.5） | 0.6033 | 0.7220 | 0.9700 | 0.6939 |
+| Hybrid（RRF，Instruct 指令） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
+| Hybrid（RRF，Instruct 指令，BM25 权重 0.5） | 0.6033 | 0.7220 | 0.9700 | 0.6939 |
 
-![SciFact 与 DuRetrieval 指标对比](../data/evaluation/figures/metrics_bars.png)
+![SciFact 指标对比](../data/evaluation/figures/metrics_bars_scifact.png)
+
+图 1  SciFact 各方法指标对比
 
 ### 6.2 DuRetrieval（中文，2,000 dev queries）
 
 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
 | --- | --- | --- | --- | --- |
 | BM25（jieba） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
-| Dense：bge-small-zh-v1.5 + 前缀 | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
+| Dense：bge-small-zh-v1.5（检索指令前缀） | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
 | Hybrid：BM25 + bge-small-zh（RRF，等权） | 0.7825 | 0.7233 | 0.9338 | 0.8431 |
 | Hybrid（RRF，BM25 权重 0.5） | 0.8010 | 0.7529 | 0.9422 | 0.8573 |
 | Hybrid（RRF，BM25 权重 0.3） | 0.8080 | 0.7696 | 0.9395 | 0.8647 |
 | Hybrid（RRF，BM25 权重 0.2） | 0.8100 | 0.7794 | 0.9395 | 0.8678 |
 | Hybrid（RRF，BM25 权重 0.1） | 0.8145 | 0.7871 | 0.9395 | 0.8716 |
 
+![DuRetrieval 指标对比](../data/evaluation/figures/metrics_bars_duretrieval.png)
+
+图 2  DuRetrieval dev 各方法指标对比
+
 ![质量与检索延迟](../data/evaluation/figures/efficiency.png)
+
+图 3  代表性配置的质量与检索延迟
 
 ### 6.3 加权 RRF 参数探索
 
+在 DuRetrieval dev split 上扫描 BM25 权重 0.1、0.2、0.3、0.5，并与等权配置（1.0）比较（Dense 权重固定 1.0，rrf_k = 60）。图 4 由 `data/evaluation/` 下 DuRetrieval 的对应实验 JSON 直接生成，仅包含这 5 个离散配置与 Dense 单路参考值。
+
 ![加权 RRF 曲线](../data/evaluation/figures/rrf_weights.png)
 
-在 DuRetrieval dev split 上，BM25 权重 0.1 为当前搜索范围内的最佳配置（NDCG@10 = 0.7871），仍略低于 Dense 单路（0.7900）。该结果是开发集调参，不代表独立测试集上的泛化表现。
+图 4  DuRetrieval dev 加权 RRF 曲线（5 个离散配置 + Dense 参考线）
+
+在当前搜索范围内，BM25 权重 0.1 的配置最佳（NDCG@10 = 0.7871），仍略低于 Dense 单路（0.7900）。该结果是开发集上的参数探索，不代表独立测试集上的泛化表现。
 
 ## 7 错误分析
 
@@ -122,8 +134,8 @@ $$
 
 ## 8 讨论
 
-1. **前缀影响**：Qwen3-Embedding 加官方 instruct 前缀后 NDCG@10 提升 +0.0243（SciFact）、+0.0241（DuRetrieval）；BGE-M3 官方前缀提升 +0.0065。说明对推荐使用指令前缀的模型，应按官方用法配置。
-2. **Hybrid 的适用条件**：RRF 融合的收益依赖两路检索器信号强度接近。SciFact 上 BM25 与 Dense 差距较小，Hybrid 优于单路；DuRetrieval 上 BM25 明显弱于 Dense，等权融合稀释 Dense 信号，加权 RRF 可缓解（0.7233 → 0.7871）但无法超过 Dense 单路——RRF 只保留排名、丢失分数间隔信息。
+1. **查询侧指令影响**：Qwen3-Embedding 按官方推荐 Instruct 格式构造查询指令后，NDCG@10 提升 +0.0243（SciFact）、+0.0241（DuRetrieval）；BGE-M3 实验中使用的是自定义查询前缀，带来 +0.0065 的提升。不同模型应采用各自适用的查询编码配置，两类前缀不可混为一谈。
+2. **Hybrid 的适用条件（本项目观察）**：在本项目的实验中，当 BM25 与 Dense 的检索效果差距较小时，RRF 融合取得了较好的结果（SciFact）；当两路检索器性能差距较大时，等权融合可能削弱较强检索器的排序表现（DuRetrieval）：加权 RRF 可缓解（0.7233 → 0.7871），但仍无法超过 Dense 单路——RRF 只保留排名、丢失分数间隔信息。
 3. **模型选择**：中文场景下 bge-small-zh-v1.5（24M）在 DuRetrieval 上以约 1/6 的编码成本（6.8 min vs Qwen3 约 3 小时）取得 0.7900 的 NDCG@10；BGE-M3 在 MPS 上批量编码会 OOM，未采用。
 4. **局限**：当前 DuRetrieval 结果均基于 dev split，正式结论需在留出测试集上复核；SciFact 仅为英文流程验证，规模较小。
 
