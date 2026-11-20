@@ -42,6 +42,7 @@ def _config_key(config: dict) -> tuple:
             config.get("query_prefix", ""),
             config.get("rrf_k"),
             config.get("tokenizer", "simple"),
+            tuple(config.get("rrf_weights") or [1.0, 1.0]),
         )
     return (
         "dense",
@@ -82,9 +83,13 @@ def describe(config: dict) -> str:
         return f"{dataset}: {inner}"
     prefix = " (+自定义前缀)" if config.get("query_prefix") else ""
     if method == "hybrid":
+        weights = config.get("rrf_weights")
+        weight_note = ""
+        if weights and list(weights) != [1.0, 1.0]:
+            weight_note = f", w={weights[0]:g}/{weights[1]:g}"
         inner = (
             f"Hybrid: BM25 + {config.get('model', '?')} "
-            f"(rrf_k={config.get('rrf_k')}){prefix}"
+            f"(rrf_k={config.get('rrf_k')}{weight_note}){prefix}"
         )
     else:
         inner = f"Dense: {config.get('model', '?')}{prefix}"

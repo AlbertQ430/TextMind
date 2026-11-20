@@ -70,6 +70,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-size", type=int, default=32, help="编码 batch 大小（仅 dense/hybrid）")
     parser.add_argument("--rrf-k", type=int, default=60, help="RRF 融合参数（仅 hybrid）")
     parser.add_argument(
+        "--rrf-weights",
+        type=float,
+        nargs="+",
+        default=None,
+        help="加权 RRF 权重，顺序为 BM25 Dense（仅 hybrid；留空为等权）",
+    )
+    parser.add_argument(
         "--query-prefix", default="", help="查询前缀（仅 dense，例如 BGE 官方检索指令）"
     )
     parser.add_argument("--limit", type=int, default=None, help="只评估前 N 条 query（调试用）")
@@ -120,6 +127,13 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
     if args.method == "hybrid":
         if args.rrf_k <= 0:
             raise ValueError(f"--rrf-k 必须为正整数，实际 {args.rrf_k}")
+        if args.rrf_weights is not None:
+            if len(args.rrf_weights) != 2:
+                raise ValueError(
+                    f"--rrf-weights 需要 2 个值（BM25, Dense），实际 {args.rrf_weights}"
+                )
+            if any(weight < 0 for weight in args.rrf_weights):
+                raise ValueError(f"--rrf-weights 必须非负，实际 {args.rrf_weights}")
 
     args.k = ks
     return args
@@ -216,6 +230,7 @@ def main(argv=None) -> int:
                 ],
                 rrf_k=args.rrf_k,
                 query_transforms=[None, lambda query: args.query_prefix + query],
+                weights=args.rrf_weights,
             )
         else:
             retriever = dense
@@ -261,6 +276,8 @@ def main(argv=None) -> int:
     if args.query_prefix:
         digest = hashlib.sha1(args.query_prefix.encode("utf-8")).hexdigest()[:8]
         suffix = f"_prefix_{digest}"
+    if args.method == "hybrid" and args.rrf_weights:
+        suffix += "_w" + "_".join(f"{weight:g}" for weight in args.rrf_weights)
     output = Path(args.output) if args.output else (
         RESULT_DIR / f"{args.name}_{args.method}{suffix}_{timestamp}.json"
     )
@@ -291,6 +308,7 @@ def main(argv=None) -> int:
                     "k1": args.k1,
                     "b": args.b,
                     "rrf_k": args.rrf_k,
+                    "rrf_weights": args.rrf_weights or [1.0, 1.0],
                     "tokenizer": args.tokenizer,
                 }
             )
@@ -381,8 +399,9 @@ def main(argv=None) -> int:
         print(f"方法: Dense  model={args.model} device={device} "
               f"batch_size={args.batch_size} top_k={args.top_k}{prefix_note}")
     else:
+        weight_note = f"  rrf_weights={args.rrf_weights}" if args.rrf_weights else ""
         print(f"方法: Hybrid (BM25 + Dense)  model={args.model} device={device} "
-              f"rrf_k={args.rrf_k} top_k={args.top_k}{prefix_note}")
+              f"rrf_k={args.rrf_k} top_k={args.top_k}{prefix_note}{weight_note}")
     print("指标:")
     for name, value in evaluation["metrics"].items():
         print(f"  {name:<8} {value:.4f}")

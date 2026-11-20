@@ -66,6 +66,14 @@ class TestCompareExperiments(unittest.TestCase):
             "DuRetrieval: BM25 (jieba, k1=1.2, b=0.75)",
         )
 
+    def test_describe_weighted_hybrid(self):
+        self.assertIn(
+            "w=0.5/1",
+            describe(
+                {"method": "hybrid", "model": "m", "rrf_k": 60, "rrf_weights": [0.5, 1.0]}
+            ),
+        )
+
     def test_prefix_variants_are_distinct(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)

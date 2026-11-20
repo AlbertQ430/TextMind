@@ -26,6 +26,7 @@ class HybridRetriever(Retriever):
         rrf_k: int = 60,
         candidate_depth: Optional[int] = None,
         query_transforms: Optional[Sequence[Optional[QueryTransform]]] = None,
+        weights: Optional[Sequence[float]] = None,
     ) -> None:
         if not retrievers:
             raise ValueError("至少需要一个子检索器")
@@ -35,6 +36,11 @@ class HybridRetriever(Retriever):
             raise ValueError(f"candidate_depth 必须为正整数，实际 {candidate_depth}")
         if query_transforms is not None and len(query_transforms) != len(retrievers):
             raise ValueError("query_transforms 长度必须与 retrievers 一致")
+        if weights is not None:
+            if len(weights) != len(retrievers):
+                raise ValueError("weights 长度必须与 retrievers 一致")
+            if any(weight < 0 for weight in weights):
+                raise ValueError(f"weights 必须非负，实际 {weights}")
         self.retrievers = list(retrievers)
         self.rrf_k = rrf_k
         self.candidate_depth = candidate_depth
@@ -42,6 +48,9 @@ class HybridRetriever(Retriever):
             list(query_transforms)
             if query_transforms is not None
             else [None] * len(self.retrievers)
+        )
+        self.weights = (
+            list(weights) if weights is not None else [1.0] * len(self.retrievers)
         )
         self.last_batch_timing: Dict[str, object] = {}
 
@@ -63,12 +72,16 @@ class HybridRetriever(Retriever):
         rankings: Sequence[Sequence[Tuple[str, float]]],
         rrf_k: int,
         top_k: int,
+        weights: Optional[Sequence[float]] = None,
     ) -> List[Tuple[str, float]]:
-        """Reciprocal Rank Fusion：``score(d) = Σ 1 / (rrf_k + rank)``。"""
+        """加权 Reciprocal Rank Fusion：``score(d) = Σ wᵢ / (rrf_k + rank_i)``。"""
         fused: Dict[str, float] = {}
-        for ranking in rankings:
+        for index, ranking in enumerate(rankings):
+            weight = weights[index] if weights is not None else 1.0
+            if weight == 0:
+                continue
             for rank, (doc_id, _) in enumerate(ranking, start=1):
-                fused[doc_id] = fused.get(doc_id, 0.0) + 1.0 / (rrf_k + rank)
+                fused[doc_id] = fused.get(doc_id, 0.0) + weight / (rrf_k + rank)
         ranked = sorted(fused.items(), key=lambda item: (-item[1], item[0]))
         return ranked[:top_k]
 
@@ -80,7 +93,7 @@ class HybridRetriever(Retriever):
             retriever.search(self._transform(index, query), top_k=depth)
             for index, retriever in enumerate(self.retrievers)
         ]
-        return self.rrf_fuse(rankings, self.rrf_k, top_k)
+        return self.rrf_fuse(rankings, self.rrf_k, top_k, self.weights)
 
     def search_batch(
         self, queries: Sequence[str], top_k: int = 10
@@ -137,6 +150,7 @@ class HybridRetriever(Retriever):
                     [rankings[position] for rankings in rankings_per],
                     self.rrf_k,
                     top_k,
+                    self.weights,
                 )
             )
             elapsed = time.perf_counter() - start

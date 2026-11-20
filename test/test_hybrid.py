@@ -94,6 +94,22 @@ class TestHybridRetriever(unittest.TestCase):
         self.assertEqual([doc_id for doc_id, _ in results[0]], ["a", "v"])
         self.assertGreaterEqual(hybrid.last_batch_timing["dense_search"], 0.0)
 
+    def test_weighted_rrf(self):
+        first = FakeRetriever({"q": [("a", 1.0)]})
+        second = FakeRetriever({"q": [("b", 1.0)]})
+        hybrid = HybridRetriever([first, second], rrf_k=60, weights=[0.5, 1.0])
+        results = hybrid.search("q", top_k=2)
+        scores = {doc_id: score for doc_id, score in results}
+        self.assertAlmostEqual(scores["a"], 0.5 / 61)
+        self.assertAlmostEqual(scores["b"], 1.0 / 61)
+        self.assertEqual([doc_id for doc_id, _ in results], ["b", "a"])
+
+    def test_invalid_weights(self):
+        with self.assertRaises(ValueError):
+            HybridRetriever([FakeRetriever({}), FakeRetriever({})], weights=[1.0])
+        with self.assertRaises(ValueError):
+            HybridRetriever([FakeRetriever({})], weights=[-1.0])
+
     def test_fit_propagates(self):
         first, second = FakeRetriever({}), FakeRetriever({})
         HybridRetriever([first, second]).fit([object()])

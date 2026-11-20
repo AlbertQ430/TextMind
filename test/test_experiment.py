@@ -103,6 +103,20 @@ class TestValidateArgs(unittest.TestCase):
         self.assertEqual(args.dataset, "duretrieval")
         self.assertEqual(args.tokenizer, "jieba")
 
+    def test_hybrid_rrf_weights(self):
+        args = validate_args(
+            parse_args(["--method", "hybrid", "--rrf-weights", "0.5", "1.0"])
+        )
+        self.assertEqual(args.rrf_weights, [0.5, 1.0])
+
+    def test_hybrid_rrf_weights_invalid(self):
+        with self.assertRaises(ValueError):
+            validate_args(parse_args(["--method", "hybrid", "--rrf-weights", "0.5"]))
+        with self.assertRaises(ValueError):
+            validate_args(
+                parse_args(["--method", "hybrid", "--rrf-weights", "-0.1", "1.0"])
+            )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
