@@ -87,6 +87,7 @@ python test/test_similarity.py
 | 数据集 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
 | --- | --- | --- | --- | --- | --- |
 | DuRetrieval dev | BM25（jieba 分词） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
+| DuRetrieval dev | Dense：bge-small-zh-v1.5（无前缀） | 0.8195 | 0.7949 | 0.9429 | 0.8751 |
 | DuRetrieval dev | Dense：bge-small-zh-v1.5 + 自定义前缀 | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
 | DuRetrieval dev | Hybrid：BM25 + bge-small-zh-v1.5（RRF，jieba） | 0.7825 | 0.7233 | 0.9338 | 0.8431 |
 | SciFact test | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
