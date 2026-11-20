@@ -56,14 +56,14 @@ def describe(config: dict) -> str:
         return f"BM25 (k1={config.get('k1')}, b={config.get('b')})"
     label = f"Dense: {config.get('model', '?')}"
     if config.get("query_prefix"):
-        label += " (+prefix)"
+        label += " (+自定义前缀)"
     return label
 
 
 def build_table(results: list[dict]) -> str:
     lines = [
-        "| 方法 | P@1 | NDCG@5 | NDCG@10 | R@10 | R@100 | MRR | 建索引(s) | 检索均值(ms) |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| 方法 | P@1 | NDCG@5 | NDCG@10 | R@10 | R@100 | MRR | 建索引(s) | 查询编码(s) | 检索均值(ms) |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for data in results:
         metrics = data["metrics"]
@@ -71,6 +71,7 @@ def build_table(results: list[dict]) -> str:
         row = [describe(data["config"])]
         row += [f"{metrics.get(column, 0.0):.4f}" for column in METRIC_COLUMNS]
         row.append(f"{timing.get('index_seconds', 0.0):.1f}")
+        row.append(f"{timing.get('query_encode_seconds', 0.0):.2f}")
         row.append(f"{timing.get('search_mean_seconds', 0.0) * 1000:.1f}")
         lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines)

@@ -15,9 +15,11 @@
       100
     ],
     "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "model_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
     "device": "mps",
     "batch_size": 32,
-    "normalize_embeddings": true
+    "normalize_embeddings": true,
+    "query_prefix": ""
   },
   "metrics": {
     "P@1": 0.5033333333333333,
@@ -37,12 +39,17 @@
   "num_queries": 300,
   "num_skipped": 0,
   "timing": {
-    "load_seconds": 0.0154,
-    "model_load_seconds": 1.7583,
-    "index_seconds": 0.0109,
-    "search_total_seconds": 1.461,
-    "search_mean_seconds": 0.00487,
-    "search_median_seconds": 0.003919
+    "load_seconds": 0.0157,
+    "model_load_seconds": 1.8613,
+    "doc_cache_load_seconds": 0.0082,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0008,
+    "query_encode_seconds": 0.0,
+    "index_seconds": 0.0082,
+    "vector_search_total_seconds": 0.0705,
+    "search_total_seconds": 0.0705,
+    "search_mean_seconds": 0.000235,
+    "search_median_seconds": 0.000229
   },
   "environment": {
     "python": "3.11.18",

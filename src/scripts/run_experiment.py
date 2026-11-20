@@ -113,6 +113,34 @@ def _resolve_device(name: str, torch) -> str:
     return name
 
 
+def _cache_commit_hash(model_name: str) -> str | None:
+    """从 HuggingFace 本地缓存读取模型 commit hash（离线可用）。"""
+    try:
+        from huggingface_hub import constants
+
+        cache_dir = Path(constants.HF_HUB_CACHE)
+    except ImportError:
+        cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
+    ref = cache_dir / f"models--{model_name.replace('/', '--')}" / "refs" / "main"
+    try:
+        return ref.read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def _model_revision(model, model_name: str | None = None) -> str | None:
+    """读取模型权重版本：优先 transformers 的 commit hash，回退到 HF 缓存 refs。"""
+    try:
+        commit = getattr(model[0].auto_model.config, "_commit_hash", None)
+        if commit:
+            return commit
+    except (AttributeError, IndexError, TypeError):
+        pass
+    if model_name:
+        return _cache_commit_hash(model_name)
+    return None
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -138,11 +166,14 @@ def main(argv=None) -> int:
         start = time.perf_counter()
         model = SentenceTransformer(args.model, device=device)
         model_load_seconds = time.perf_counter() - start
+        revision = _model_revision(model, args.model)
         retriever = DenseRetriever(
             model,
             batch_size=args.batch_size,
             cache_dir=EMBEDDING_CACHE_DIR,
             cache_key=args.model,
+            model_name=args.model,
+            model_revision=revision,
         )
 
     start = time.perf_counter()
@@ -155,11 +186,20 @@ def main(argv=None) -> int:
 
     retrieved = {}
     latencies = []
-    for query in eval_queries:
-        start = time.perf_counter()
-        results = retriever.search(args.query_prefix + query.text, top_k=args.top_k)
-        latencies.append(time.perf_counter() - start)
-        retrieved[query.query_id] = [doc_id for doc_id, _ in results]
+    if args.method == "dense":
+        query_texts = [args.query_prefix + query.text for query in eval_queries]
+        query_vectors = retriever.encode_queries(query_texts)
+        for query, vector in zip(eval_queries, query_vectors):
+            start = time.perf_counter()
+            results = retriever.search_vector(vector, top_k=args.top_k)
+            latencies.append(time.perf_counter() - start)
+            retrieved[query.query_id] = [doc_id for doc_id, _ in results]
+    else:
+        for query in eval_queries:
+            start = time.perf_counter()
+            results = retriever.search(args.query_prefix + query.text, top_k=args.top_k)
+            latencies.append(time.perf_counter() - start)
+            retrieved[query.query_id] = [doc_id for doc_id, _ in results]
 
     subset_qrels = {query.query_id: dataset.qrels[query.query_id] for query in eval_queries}
     evaluation = evaluate(retrieved, subset_qrels, ks=args.k)
@@ -185,6 +225,7 @@ def main(argv=None) -> int:
         config.update(
             {
                 "model": args.model,
+                "model_revision": revision,
                 "device": device,
                 "batch_size": args.batch_size,
                 "normalize_embeddings": True,
@@ -200,6 +241,37 @@ def main(argv=None) -> int:
         environment["torch"] = torch.__version__
         environment["device"] = device
 
+    if args.method == "dense":
+        timing = {
+            "load_seconds": round(load_seconds, 4),
+            "model_load_seconds": round(model_load_seconds, 4),
+            "doc_cache_load_seconds": round(retriever.timing["doc_cache_load"], 4),
+            "corpus_encode_seconds": round(retriever.timing["corpus_encode"], 4),
+            "query_cache_load_seconds": round(retriever.timing["query_cache_load"], 4),
+            "query_encode_seconds": round(retriever.timing["query_encode"], 4),
+            "index_seconds": round(
+                retriever.timing["doc_cache_load"] + retriever.timing["corpus_encode"], 4
+            ),
+            "vector_search_total_seconds": round(sum(latencies), 4),
+            "search_total_seconds": round(sum(latencies), 4),
+            "search_mean_seconds": round(statistics.mean(latencies), 6),
+            "search_median_seconds": round(statistics.median(latencies), 6),
+        }
+    else:
+        timing = {
+            "load_seconds": round(load_seconds, 4),
+            "model_load_seconds": round(model_load_seconds, 4),
+            "doc_cache_load_seconds": 0.0,
+            "corpus_encode_seconds": round(index_seconds, 4),
+            "query_cache_load_seconds": 0.0,
+            "query_encode_seconds": 0.0,
+            "index_seconds": round(index_seconds, 4),
+            "vector_search_total_seconds": round(sum(latencies), 4),
+            "search_total_seconds": round(sum(latencies), 4),
+            "search_mean_seconds": round(statistics.mean(latencies), 6),
+            "search_median_seconds": round(statistics.median(latencies), 6),
+        }
+
     result = {
         "dataset": {
             "name": dataset.name,
@@ -211,14 +283,7 @@ def main(argv=None) -> int:
         "metrics": evaluation["metrics"],
         "num_queries": evaluation["num_queries"],
         "num_skipped": evaluation["num_skipped"],
-        "timing": {
-            "load_seconds": round(load_seconds, 4),
-            "model_load_seconds": round(model_load_seconds, 4),
-            "index_seconds": round(index_seconds, 4),
-            "search_total_seconds": round(sum(latencies), 4),
-            "search_mean_seconds": round(statistics.mean(latencies), 6),
-            "search_median_seconds": round(statistics.median(latencies), 6),
-        },
+        "timing": timing,
         "environment": environment,
     }
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -235,11 +300,20 @@ def main(argv=None) -> int:
     for name, value in evaluation["metrics"].items():
         print(f"  {name:<8} {value:.4f}")
     print(f"无相关标注跳过: {evaluation['num_skipped']}")
-    print(f"耗时: 加载 {load_seconds:.2f}s  模型 {model_load_seconds:.2f}s  "
-          f"建索引 {index_seconds:.2f}s  "
-          f"检索总计 {sum(latencies):.3f}s  "
-          f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
-          f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
+    if args.method == "dense":
+        print(f"耗时: 加载 {load_seconds:.2f}s  模型 {model_load_seconds:.2f}s  "
+              f"文档缓存 {timing['doc_cache_load_seconds']:.2f}s  "
+              f"语料编码 {timing['corpus_encode_seconds']:.2f}s")
+        print(f"      查询缓存 {timing['query_cache_load_seconds']:.2f}s  "
+              f"查询编码 {timing['query_encode_seconds']:.2f}s  "
+              f"向量检索 {timing['vector_search_total_seconds']:.3f}s  "
+              f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
+              f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
+    else:
+        print(f"耗时: 加载 {load_seconds:.2f}s  建索引 {index_seconds:.2f}s  "
+              f"检索总计 {sum(latencies):.3f}s  "
+              f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
+              f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
     print(f"结果已写入: {output}")
     return 0
 

@@ -1,5 +1,6 @@
 """DenseRetriever 测试：注入假编码器，不加载真实模型。"""
 
+import json
 import sys
 import tempfile
 import unittest
@@ -113,6 +114,79 @@ class TestDenseRetriever(unittest.TestCase):
         DenseRetriever(encoder).fit(make_docs())
         DenseRetriever(encoder).fit(make_docs())
         self.assertEqual(encoder.calls, 2)
+
+    def test_cache_hit_matches_miss_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "query": (1.0, 0.0),
+            }
+            miss = DenseRetriever(
+                CountingEncoder(mapping), cache_dir=tmp, cache_key="fake"
+            ).fit(make_docs())
+            hit_encoder = CountingEncoder(mapping)
+            hit = DenseRetriever(
+                hit_encoder, cache_dir=tmp, cache_key="fake"
+            ).fit(make_docs())
+            self.assertEqual(hit_encoder.calls, 0)  # 文档编码完全命中缓存
+            self.assertEqual(miss.search("query", top_k=3), hit.search("query", top_k=3))
+
+    def test_query_cache_hit_matches_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "q1": (1.0, 0.0),
+                "q2": (0.0, 1.0),
+            }
+            encoder = CountingEncoder(mapping)
+            retriever = DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake"
+            ).fit(make_docs())
+            first = retriever.encode_queries(["q1", "q2"])
+            self.assertEqual(encoder.calls, 2)  # fit 1 次 + 查询编码 1 次
+            second = DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake"
+            ).fit(make_docs()).encode_queries(["q1", "q2"])
+            self.assertEqual(encoder.calls, 2)  # 文档与查询均命中缓存
+            np.testing.assert_allclose(first, second)
+
+    def test_query_cache_miss_on_changed_queries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {
+                "alpha": (1.0, 0.0),
+                "beta": (0.6, 0.8),
+                "gamma": (0.0, 1.0),
+                "q1": (1.0, 0.0),
+                "q2": (0.0, 1.0),
+            }
+            encoder = CountingEncoder(mapping)
+            retriever = DenseRetriever(
+                encoder, cache_dir=tmp, cache_key="fake"
+            ).fit(make_docs())
+            retriever.encode_queries(["q1"])
+            retriever.encode_queries(["q2"])
+            self.assertEqual(encoder.calls, 3)  # fit + 两次不同查询
+
+    def test_cache_meta_contains_model_info(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = {"alpha": (1.0, 0.0), "beta": (0.6, 0.8), "gamma": (0.0, 1.0)}
+            DenseRetriever(
+                CountingEncoder(mapping),
+                cache_dir=tmp,
+                cache_key="fake",
+                model_name="fake-model",
+                model_revision="abc123",
+            ).fit(make_docs())
+            metas = list(Path(tmp).glob("*.json"))
+            self.assertEqual(len(metas), 1)
+            meta = json.loads(metas[0].read_text(encoding="utf-8"))
+            self.assertEqual(meta["model_name"], "fake-model")
+            self.assertEqual(meta["revision"], "abc123")
+            self.assertEqual(meta["version"], 2)
 
 
 if __name__ == "__main__":

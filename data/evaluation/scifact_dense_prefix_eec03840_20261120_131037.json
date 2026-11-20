@@ -15,6 +15,7 @@
       100
     ],
     "model": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
     "device": "mps",
     "batch_size": 32,
     "normalize_embeddings": true,
@@ -26,24 +27,29 @@
     "NDCG@1": 0.5733333333333334,
     "P@5": 0.1753333333333339,
     "R@5": 0.7782777777777777,
-    "NDCG@5": 0.6835873029369338,
+    "NDCG@5": 0.6834412237674711,
     "P@10": 0.09433333333333369,
     "R@10": 0.8272222222222222,
-    "NDCG@10": 0.7004898906262778,
+    "NDCG@10": 0.7003438114568148,
     "P@100": 0.010866666666666597,
     "R@100": 0.9566666666666667,
-    "NDCG@100": 0.7290155049287295,
-    "MRR": 0.6709595535372862
+    "NDCG@100": 0.728821726370735,
+    "MRR": 0.6707507506866889
   },
   "num_queries": 300,
   "num_skipped": 0,
   "timing": {
-    "load_seconds": 0.0144,
-    "model_load_seconds": 5.2423,
-    "index_seconds": 580.7893,
-    "search_total_seconds": 7.8802,
-    "search_mean_seconds": 0.026267,
-    "search_median_seconds": 0.025852
+    "load_seconds": 0.0138,
+    "model_load_seconds": 4.5575,
+    "doc_cache_load_seconds": 0.0106,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0014,
+    "query_encode_seconds": 0.0,
+    "index_seconds": 0.0106,
+    "vector_search_total_seconds": 0.1801,
+    "search_total_seconds": 0.1801,
+    "search_mean_seconds": 0.0006,
+    "search_median_seconds": 0.00053
   },
   "environment": {
     "python": "3.11.18",

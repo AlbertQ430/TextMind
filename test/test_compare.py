@@ -53,6 +53,10 @@ class TestCompareExperiments(unittest.TestCase):
     def test_describe(self):
         self.assertIn("BM25", describe({"method": "bm25", "k1": 1.2, "b": 0.75}))
         self.assertEqual(describe({"method": "dense", "model": "m"}), "Dense: m")
+        self.assertEqual(
+            describe({"method": "dense", "model": "m", "query_prefix": "x"}),
+            "Dense: m (+自定义前缀)",
+        )
 
     def test_prefix_variants_are_distinct(self):
         with tempfile.TemporaryDirectory() as tmp:

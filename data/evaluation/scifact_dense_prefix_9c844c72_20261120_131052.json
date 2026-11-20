@@ -15,6 +15,7 @@
       100
     ],
     "model": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
     "device": "mps",
     "batch_size": 32,
     "normalize_embeddings": true,
@@ -38,12 +39,17 @@
   "num_queries": 300,
   "num_skipped": 0,
   "timing": {
-    "load_seconds": 0.0153,
-    "model_load_seconds": 4.8074,
-    "index_seconds": 0.0164,
-    "search_total_seconds": 7.934,
-    "search_mean_seconds": 0.026447,
-    "search_median_seconds": 0.025341
+    "load_seconds": 0.0156,
+    "model_load_seconds": 4.0396,
+    "doc_cache_load_seconds": 0.012,
+    "corpus_encode_seconds": 0.0,
+    "query_cache_load_seconds": 0.0011,
+    "query_encode_seconds": 0.0,
+    "index_seconds": 0.012,
+    "vector_search_total_seconds": 0.1416,
+    "search_total_seconds": 0.1416,
+    "search_mean_seconds": 0.000472,
+    "search_median_seconds": 0.000456
   },
   "environment": {
     "python": "3.11.18",
