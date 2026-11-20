@@ -83,7 +83,7 @@ MVP 预设实验必须沿用课程实验已完成的配置和结果，不新增�
 
 | 方案 ID（建议稳定标识） | 名称 | 数据集与划分 | 主要实验内容 |
 | --- | --- | --- | --- |
-| `scifact-comparison` | SciFact 英文检索方法与模型对比 | SciFact test | BM25；Qwen3-Embedding-0.6B（无前缀 / 官方 Instruct）；all-MiniLM-L6-v2；BGE-M3（无前缀 / 自定义查询前缀）；已有 Qwen3 Hybrid / RRF 组合 |
+| `scifact-comparison` | SciFact 英文检索方法与模型对比 | SciFact test | BM25；Qwen3-Embedding-0.6B Dense（无前缀 / 官方 Instruct）；all-MiniLM-L6-v2 Dense；BGE-M3 Dense（无前缀 / 自定义查询前缀）；BM25 + Qwen3 Hybrid（无前缀等权 RRF、Instruct 等权 RRF、Instruct 且 BM25 权重 0.5） |
 | `duretrieval-comparison` | DuRetrieval 中文检索方法对比 | DuRetrieval dev | BM25（jieba）；bge-small-zh-v1.5 Dense（无前缀 / 检索指令前缀）；等权 Hybrid / RRF |
 | `duretrieval-rrf-weight-sweep` | DuRetrieval 加权 RRF 参数探索 | DuRetrieval dev | BM25 权重 1.0、0.5、0.3、0.2、0.1；Dense 权重固定 1.0；RRF k=60 |
 
@@ -350,7 +350,7 @@ README 必须说明所需 Python 版本、第三方依赖、推荐模型及数�
 局域网客户端访问的是主机上的同一实例，共享实验任务队列、运行状态、历史记录和结果文件，不创建独立副本。
 
 **FR-103 客户端权限**  
-局域网客户端可以查看实验方案、提交实验、查看运行状态、取消任务、查看结果和导入 JSON；不能修改主机资源路径、Python 环境或局域网访问开关。
+局域网客户端可以查看实验方案、提交实验、查看运行状态、取消任务和查看结果；不能修改主机资源路径、Python 环境或局域网访问开关。JSON 导入权限由主机本地使用场景承担，MVP 不向局域网客户端开放该操作。
 
 **FR-104 地址与连接提示**  
 系统应向主机用户显示可用于局域网访问的主机 IPv4 地址和端口，并在连接失败、服务退出或网络地址变化时给出清楚提示。不得要求用户将 `0.0.0.0` 当作客户端访问地址。
