@@ -24,6 +24,14 @@ def _config_key(config: dict) -> tuple:
     """同一实验配置的标识，用于去重时保留最新结果。"""
     if config.get("method") == "bm25":
         return ("bm25", config.get("k1"), config.get("b"), config.get("top_k"))
+    if config.get("method") == "hybrid":
+        return (
+            "hybrid",
+            config.get("model"),
+            config.get("top_k"),
+            config.get("query_prefix", ""),
+            config.get("rrf_k"),
+        )
     return (
         "dense",
         config.get("model"),
@@ -54,10 +62,13 @@ def describe(config: dict) -> str:
     method = config.get("method", "?")
     if method == "bm25":
         return f"BM25 (k1={config.get('k1')}, b={config.get('b')})"
-    label = f"Dense: {config.get('model', '?')}"
-    if config.get("query_prefix"):
-        label += " (+自定义前缀)"
-    return label
+    prefix = " (+自定义前缀)" if config.get("query_prefix") else ""
+    if method == "hybrid":
+        return (
+            f"Hybrid: BM25 + {config.get('model', '?')} "
+            f"(rrf_k={config.get('rrf_k')}){prefix}"
+        )
+    return f"Dense: {config.get('model', '?')}{prefix}"
 
 
 def build_table(results: list[dict]) -> str:

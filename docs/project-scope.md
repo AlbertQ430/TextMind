@@ -80,5 +80,6 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
       汇总表见 `data/evaluation/summary.md`。
 - [x] 自定义查询前缀对照实验：Qwen3-Embedding-0.6B + 自定义前缀（NDCG@10 = 0.7003）、
       BGE-M3 + 自定义前缀（NDCG@10 = 0.6502）。
+- [x] Hybrid Retrieval（BM25 + Dense + RRF，rrf_k = 60）：NDCG@10 = 0.7094。
+- [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。
-- [ ] 结果分析与 Hybrid Retrieval（可选扩展）。

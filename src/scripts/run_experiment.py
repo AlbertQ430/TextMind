@@ -30,6 +30,7 @@ from document.dataset import load_scifact  # noqa: E402
 from evaluation.metrics import evaluate  # noqa: E402
 from retrieval.bm25 import BM25Retriever  # noqa: E402
 from retrieval.dense import DenseRetriever  # noqa: E402
+from retrieval.hybrid import HybridRetriever  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "scifact"
@@ -44,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--queries", default=str(DATA_DIR / "queries.jsonl"))
     parser.add_argument("--qrels", default=str(DATA_DIR / "qrels" / "test.tsv"))
     parser.add_argument("--name", default="scifact", help="数据集标识，用于结果命名")
-    parser.add_argument("--method", choices=["bm25", "dense"], default="bm25", help="检索方法")
+    parser.add_argument("--method", choices=["bm25", "dense", "hybrid"], default="bm25", help="检索方法")
     parser.add_argument("--top-k", type=int, default=100, help="检索深度")
     parser.add_argument("--k", type=int, nargs="+", default=[1, 5, 10, 100], help="评价的 K 值")
     parser.add_argument("--k1", type=float, default=1.2, help="BM25 参数（仅 bm25）")
@@ -53,7 +54,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--device", choices=["auto", "mps", "cpu"], default="auto", help="推理设备（仅 dense）"
     )
-    parser.add_argument("--batch-size", type=int, default=32, help="编码 batch 大小（仅 dense）")
+    parser.add_argument("--batch-size", type=int, default=32, help="编码 batch 大小（仅 dense/hybrid）")
+    parser.add_argument("--rrf-k", type=int, default=60, help="RRF 融合参数（仅 hybrid）")
     parser.add_argument(
         "--query-prefix", default="", help="查询前缀（仅 dense，例如 BGE 官方检索指令）"
     )
@@ -92,16 +94,19 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
     if args.limit is not None and args.limit <= 0:
         raise ValueError(f"--limit 必须为正整数，实际 {args.limit}")
 
-    if args.method == "bm25":
+    if args.method in ("bm25", "hybrid"):
         if args.k1 < 0:
             raise ValueError(f"--k1 必须 >= 0，实际 {args.k1}")
         if not 0.0 <= args.b <= 1.0:
             raise ValueError(f"--b 必须在 [0, 1] 内，实际 {args.b}")
-    else:
+    if args.method in ("dense", "hybrid"):
         if not args.model.strip():
             raise ValueError("--model 不能为空")
         if args.batch_size <= 0:
             raise ValueError(f"--batch-size 必须为正整数，实际 {args.batch_size}")
+    if args.method == "hybrid":
+        if args.rrf_k <= 0:
+            raise ValueError(f"--rrf-k 必须为正整数，实际 {args.rrf_k}")
 
     args.k = ks
     return args
@@ -167,7 +172,7 @@ def main(argv=None) -> int:
         model = SentenceTransformer(args.model, device=device)
         model_load_seconds = time.perf_counter() - start
         revision = _model_revision(model, args.model)
-        retriever = DenseRetriever(
+        dense = DenseRetriever(
             model,
             batch_size=args.batch_size,
             cache_dir=EMBEDDING_CACHE_DIR,
@@ -175,6 +180,13 @@ def main(argv=None) -> int:
             model_name=args.model,
             model_revision=revision,
         )
+        if args.method == "hybrid":
+            retriever = HybridRetriever(
+                [BM25Retriever(k1=args.k1, b=args.b), dense],
+                rrf_k=args.rrf_k,
+            )
+        else:
+            retriever = dense
 
     start = time.perf_counter()
     retriever.fit(dataset.documents)
@@ -232,12 +244,14 @@ def main(argv=None) -> int:
                 "query_prefix": args.query_prefix,
             }
         )
+        if args.method == "hybrid":
+            config.update({"k1": args.k1, "b": args.b, "rrf_k": args.rrf_k})
 
     environment = {
         "python": sys.version.split()[0],
         "platform": platform.platform(),
     }
-    if args.method == "dense":
+    if args.method in ("dense", "hybrid"):
         environment["torch"] = torch.__version__
         environment["device"] = device
 
@@ -290,12 +304,15 @@ def main(argv=None) -> int:
 
     print(f"数据集: {dataset.name}  corpus={len(dataset.documents)}  "
           f"queries={len(eval_queries)}  qrels_pairs={result['dataset']['qrels_pairs']}")
+    prefix_note = f"  query_prefix={args.query_prefix!r}" if args.query_prefix else ""
     if args.method == "bm25":
         print(f"方法: BM25  k1={args.k1} b={args.b} top_k={args.top_k}")
-    else:
-        prefix_note = f"  query_prefix={args.query_prefix!r}" if args.query_prefix else ""
+    elif args.method == "dense":
         print(f"方法: Dense  model={args.model} device={device} "
               f"batch_size={args.batch_size} top_k={args.top_k}{prefix_note}")
+    else:
+        print(f"方法: Hybrid (BM25 + Dense)  model={args.model} device={device} "
+              f"rrf_k={args.rrf_k} top_k={args.top_k}{prefix_note}")
     print("指标:")
     for name, value in evaluation["metrics"].items():
         print(f"  {name:<8} {value:.4f}")
@@ -307,6 +324,12 @@ def main(argv=None) -> int:
         print(f"      查询缓存 {timing['query_cache_load_seconds']:.2f}s  "
               f"查询编码 {timing['query_encode_seconds']:.2f}s  "
               f"向量检索 {timing['vector_search_total_seconds']:.3f}s  "
+              f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
+              f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
+    elif args.method == "hybrid":
+        print(f"耗时: 加载 {load_seconds:.2f}s  模型 {model_load_seconds:.2f}s  "
+              f"建索引 {index_seconds:.2f}s  "
+              f"检索总计 {sum(latencies):.3f}s  "
               f"单条均值 {statistics.mean(latencies) * 1000:.2f}ms  "
               f"中位数 {statistics.median(latencies) * 1000:.2f}ms")
     else:

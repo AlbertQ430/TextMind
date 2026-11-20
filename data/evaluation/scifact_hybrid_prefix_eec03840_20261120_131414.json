@@ -1,0 +1,63 @@
+{
+  "dataset": {
+    "name": "scifact",
+    "corpus_size": 5183,
+    "queries_size": 300,
+    "qrels_pairs": 339
+  },
+  "config": {
+    "method": "hybrid",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "device": "mps",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+    "k1": 1.2,
+    "b": 0.75,
+    "rrf_k": 60
+  },
+  "metrics": {
+    "P@1": 0.5866666666666667,
+    "R@1": 0.5631666666666666,
+    "NDCG@1": 0.5866666666666667,
+    "P@5": 0.17133333333333386,
+    "R@5": 0.777,
+    "NDCG@5": 0.686730003948049,
+    "P@10": 0.09333333333333367,
+    "R@10": 0.8262222222222223,
+    "NDCG@10": 0.7046703432601914,
+    "P@100": 0.010866666666666597,
+    "R@100": 0.9566666666666667,
+    "NDCG@100": 0.7344216921425784,
+    "MRR": 0.677099624101759
+  },
+  "num_queries": 300,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.014,
+    "model_load_seconds": 4.1645,
+    "doc_cache_load_seconds": 0.0,
+    "corpus_encode_seconds": 0.1852,
+    "query_cache_load_seconds": 0.0,
+    "query_encode_seconds": 0.0,
+    "index_seconds": 0.1852,
+    "vector_search_total_seconds": 9.3599,
+    "search_total_seconds": 9.3599,
+    "search_mean_seconds": 0.0312,
+    "search_median_seconds": 0.030816
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  }
+}

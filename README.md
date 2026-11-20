@@ -17,7 +17,7 @@ TextMind 当前阶段是一个**文本信息检索算法实验项目**，用于�
 ## 当前实现范围
 
 - **数据集**：Corpus、Queries、Qrels 的读取、校验和统一格式转换。
-- **检索方法**：BM25 与 Dense Retrieval 已完成实现；Hybrid Retrieval 待实现。
+- **检索方法**：BM25、Dense Retrieval、Hybrid Retrieval（RRF 融合）已完成实现。
 - **模型比较**：比较不同 Embedding 模型在相同检索任务上的效果。
 - **评价**：Precision@K、Recall@K、MRR、NDCG@K，以及检索耗时。
 - **实验记录**：保存运行配置、环境信息、指标结果和必要的查询级结果。
@@ -53,6 +53,13 @@ python src/scripts/run_experiment.py
 # Dense Retrieval 实验（首次需编码 5183 篇文档，约 9~10 分钟）
 python src/scripts/run_experiment.py --method dense
 
+# Hybrid 实验：BM25 + Dense + RRF 融合
+python src/scripts/run_experiment.py --method hybrid --model Qwen/Qwen3-Embedding-0.6B
+
+# 生成汇总表与图表
+python src/scripts/compare_experiments.py --output data/evaluation/summary.md
+python src/scripts/plot_results.py
+
 # 跑全部单元测试（自动发现 test/ 下的测试）
 python -m unittest discover -s test -v
 
@@ -79,10 +86,12 @@ SciFact test split（300 queries），统一流程与评价口径：
 | --- | --- | --- | --- | --- |
 | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
 | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
-| Dense：Qwen3-Embedding-0.6B + 自定义前缀 | **0.5733** | **0.7003** | **0.9567** | **0.6708** |
+| Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
 | Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
 | Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
 | Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
+| Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | **0.5900** | **0.7094** | 0.9533 | **0.6820** |
+| Hybrid：BM25 + Qwen3-Embedding-0.6B + 自定义前缀（RRF） | 0.5867 | 0.7047 | **0.9567** | 0.6771 |
 
 完整汇总（含索引、查询编码与向量检索耗时）由 `python src/scripts/compare_experiments.py`
 生成，见 `data/evaluation/summary.md`。耗时列反映当次运行状态：命中缓存时
@@ -95,10 +104,11 @@ Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果�
 ## 项目状态
 
 项目目前已完成 SciFact 上的检索实验闭环：BM25 基线、三种 Embedding 模型对照
-（Qwen3-Embedding-0.6B、all-MiniLM-L6-v2、BGE-M3）以及自定义查询前缀实验，
-均完成 数据集加载 → 检索 → 指标计算 → 结果落盘。
+（Qwen3-Embedding-0.6B、all-MiniLM-L6-v2、BGE-M3）、自定义查询前缀实验，
+以及 Hybrid（BM25 + Dense + RRF）融合实验，均完成 数据集加载 → 检索 →
+指标计算 → 结果落盘，并生成汇总表与图表。
 
-下一步优先：结果分析（图表、错误分析）与 Hybrid Retrieval；中文正式实验数据集尚未选定。
+下一步优先：中文正式实验数据集选型；结果错误分析与更多图表。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
 
