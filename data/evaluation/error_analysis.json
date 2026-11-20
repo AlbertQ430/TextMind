@@ -1,0 +1,171 @@
+{
+  "dataset": "duretrieval",
+  "num_queries": 2000,
+  "k": 10,
+  "methods": {
+    "bm25_jieba": {
+      "counts": {
+        "hit_at_1": 1322,
+        "ranked_low": 415,
+        "miss_top_k": 263,
+        "empty": 0
+      },
+      "ratios": {
+        "hit_at_1": 0.661,
+        "ranked_low": 0.2075,
+        "miss_top_k": 0.1315,
+        "empty": 0.0
+      }
+    },
+    "dense_bge_small_zh": {
+      "counts": {
+        "hit_at_1": 1652,
+        "ranked_low": 261,
+        "miss_top_k": 87,
+        "empty": 0
+      },
+      "ratios": {
+        "hit_at_1": 0.826,
+        "ranked_low": 0.1305,
+        "miss_top_k": 0.0435,
+        "empty": 0.0
+      }
+    },
+    "hybrid_bm25_dense": {
+      "counts": {
+        "hit_at_1": 1565,
+        "ranked_low": 310,
+        "miss_top_k": 125,
+        "empty": 0
+      },
+      "ratios": {
+        "hit_at_1": 0.7825,
+        "ranked_low": 0.155,
+        "miss_top_k": 0.0625,
+        "empty": 0.0
+      }
+    }
+  },
+  "hybrid_vs_dense": {
+    "gains_top1": 79,
+    "losses_top1": 166,
+    "gain_queries": [
+      "ae4cc079c8f7333295b5a25e69cc3fe8",
+      "25115fc3b8250c10833f50ca04a36d27",
+      "7ffdaccd1ad0d844e276e21b4385a639",
+      "cf06ac0982b64eba37fa73f08ff0266d",
+      "998587686e7457ce7e77e1ea676c0e61",
+      "1843542cded7f50a715acfbc77eaa275",
+      "f290efdcdf059239264ca792f06f637e",
+      "a6921c13a716ded1d92d6784fedc87e4",
+      "33e7ba504fd18ea6e4c1467eafed4fa2",
+      "cc0b5de3ace665dd4b9b7da939d2e81d"
+    ],
+    "loss_queries": [
+      "93052ecb6ad07eb3b6f27a704004226c",
+      "2b68efa248d341064a71a1b7e75235aa",
+      "4298ce94f4d9f593b2858cc49d2e390d",
+      "99ce8eed7ad0cb7431f92a7ed8762352",
+      "cab1fcc9e58548f814a58e941c058a9a",
+      "9976e209df175729a74d18ab05bf0402",
+      "4bb6008274dd185802a1c1b94bb060d8",
+      "4fe503fbc782b3e34eb3d49a926fb386",
+      "0c96d174496c3628d45e7fed5afe397c",
+      "d71110a9d6fe74172d0c2aaa2efc6a0c"
+    ]
+  },
+  "cases": {
+    "ranked_low": [
+      {
+        "query_id": "e043a94041c66f30fc72a85327f888b4",
+        "query": "中青旅遨游网可靠吗",
+        "relevant_docs": [
+          {
+            "doc_id": "d21e59761c9be0dda0d740ea246fdd6d",
+            "snippet": "二者实质上是一样的前者是后者旗下专业度假网站，是开放性、全国性的旅游度假产品预订及旅行服务网站；后者不仅仅有旅游行业的一系列服务，还从事旅游、高科技、风险投资、证券行业的投资；经营入境旅游、国内旅游、…"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "dc920f851b2ffb3d58d0878b3745cd84",
+          "snippet": "遨游网是A股上市公司中青旅旗下在互联网时代打造的旅行生活平台,提供国内/出境游、海岛游、签证办理、机票预订、精品酒店、游学、康养、境外当地玩乐、高端定制等品质旅行服务,移动端品牌为遨游旅行。遨游网依托…"
+        }
+      },
+      {
+        "query_id": "f1ac27241724bdd03a248c1775cd31b2",
+        "query": "外星人x51怎么拆",
+        "relevant_docs": [
+          {
+            "doc_id": "54f255b76dc65aeec41a6a237b1e4d0d",
+            "snippet": "上优酷有视频DELL官网上有建议还是专业人员拆，这样有保障。挡板螺丝去掉，一推就可以了啊"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "801557a8aa71bf50c7dbeb6b88c6ef99",
+          "snippet": "2、后壳拆解由于vivo x6机身底部有2颗固定螺丝，拆机肯定是需要先拧下底部2颗T6型螺丝，如下图所示。由于vivo x6采用了一体金属机身设计，继续拆机难度相对大家。工程师建议大家从底部的Micr…"
+        }
+      },
+      {
+        "query_id": "365420bb95d8e62a3c0385f05635c0bc",
+        "query": "windows media player不见了",
+        "relevant_docs": [
+          {
+            "doc_id": "e1e3ea8e7282ac51615c57117076d2cd",
+            "snippet": "开始，控制面板，程序和功能，打开或关闭windows功能，媒体功能，把windows media player确定即可这个是一个程序，直接在开始运行中输入C:\\Windows\\System32\\Opt…"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "f9930801a23515132fa8c449928f22a4",
+          "snippet": "类似问题:“Windows Media Player 无法播放该文件。可能是播放机不支持该文件类型,或者不支持用于压缩该文件的编解码器。”Windows Media Player 11在使用时,不能播…"
+        }
+      }
+    ],
+    "miss_top_k": [
+      {
+        "query_id": "00a969b83d0bda551c8ba5ef9ad9d3e8",
+        "query": "eve回电是什么",
+        "relevant_docs": [
+          {
+            "doc_id": "6dddded28d2d08edae67d48749bdc125",
+            "snippet": "问个小白问题 谢谢减少电容回冲的装备电容回充器减少电容回冲时间。。。谢谢！！可以从大致上分为2类1.不需要消耗船本身性能来补充电量，此类装备一般是装在中2.需要消耗船本身性能来补充电量，此类一般都是在…"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "86c75de976414434c0972ff5bbe21fa7",
+          "snippet": "n.即日来回票 day returnn.回音测深器 echo soundern.反馈;回授 feedback以作..的回报 in return foradv.回生地 lifewardn.取回;领回 r…"
+        }
+      },
+      {
+        "query_id": "2afc54e99c6f44a3446d82cc01a9ef4f",
+        "query": "360wifi一直显示密码错误",
+        "relevant_docs": [
+          {
+            "doc_id": "a9768c7c13b6c010295abed5339825d1",
+            "snippet": "1、这个错误提示可能是输入的第一页账号密码时出现的，这个属于账号密码，应该输入默认的ADMIN，重新输入一次看看。如果还是报错，那么把路由器的用户名（经销商给的）当做密码输入就可以了。2、当输入第二页…"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "bb0ae3dc1333cf5b6f613c00ab787abe",
+          "snippet": "1、网页有不安全因素,浏览器会警告 部署了 SSL 证书的网站正常情况下,浏览器地址栏会自动显示安全锁标志。但如果部署了 SSL 证书的网站有不安全因素,浏览器就会有警告,表明此页面中含有指向其他没有…"
+        }
+      },
+      {
+        "query_id": "f4163f6fe10d12e66bdac7d520eb8ef9",
+        "query": "怎么改键盘按键",
+        "relevant_docs": [
+          {
+            "doc_id": "cfa777d29e7638ad5f5853d49180e81a",
+            "snippet": "点击[开始]菜单；进入[设置]中的[控制面板]；点击[键盘]一项，双击它可以设置。如果是BIOS/CMOS中的键盘设置，；在开机时按DEL键或F2键进入BIOS/CMOS，因为不同的CMOS版本不同，…"
+          },
+          {
+            "doc_id": "cfcaea7638e39f9faa7e04b03f21309e",
+            "snippet": "我们需要下载一个键盘映射工具。储存路径为：全部文件>维护电脑>设置软件（键盘映射工具）第二，软件是不需要进行安装的，点击当前用户——增加。第三，然后点击原值右边的下拉箭头——在弹出的菜单中选择需要修改…"
+          }
+        ],
+        "dense_top1": {
+          "doc_id": "d69278dbe0692e0c91493c5d9c0800ff",
+          "snippet": "键盘的方向键设置成上下左右后，进游戏一按方向键就变成各种战术快捷键，在左下角不停地变化战术。本来昨天还好好的，今天玩的时候怎么设置都是这样，队员无法移动，方向键变成了战术设置。。。求助~谢谢了！福利吸…"
+        }
+      }
+    ]
+  }
+}

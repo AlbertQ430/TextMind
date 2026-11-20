@@ -80,6 +80,7 @@ python test/test_similarity.py
 - [已确认的历史需求与决策](docs/requirements/confirmed-decisions.md)
 - [待讨论事项](docs/requirements/open-questions.md)
 - [技术验证报告](docs/technical-validation.md)
+- [DuRetrieval 错误分析报告](docs/error-analysis.md)
 
 ## 当前实验结果
 
