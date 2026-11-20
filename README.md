@@ -85,7 +85,8 @@ SciFact test split（300 queries），统一流程与评价口径：
 | Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
 
 完整汇总（含索引、查询编码与向量检索耗时）由 `python src/scripts/compare_experiments.py`
-生成，见 `data/evaluation/summary.md`。
+生成，见 `data/evaluation/summary.md`。耗时列反映当次运行状态：命中缓存时
+对应编码耗时为 0。
 
 说明：查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
 Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果分开记录，
