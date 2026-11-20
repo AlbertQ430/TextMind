@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 # 忽略派生的 embedding 缓存
 data/processed/
+
+# 忽略 DuRetrieval 数据目录：按约定不纳入版本库，可由 docs/datasets.md 记录的 commit 重新下载
+data/raw/duretrieval/

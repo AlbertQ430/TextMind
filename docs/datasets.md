@@ -1,13 +1,13 @@
 # 公开文本检索数据集调研
 
 > 调研日期：2026-11-19  
-> 状态：候选调研。SciFact 已完成流程验证；正式中文实验数据集尚未选定。数据集许可证、版本和实际下载内容应在正式使用前再次核验。
+> 状态：DuRetrieval 已完成授权核验与格式验证，作为正式中文实验数据集；SciFact 已完成英文流程验证。数据集许可证、版本和实际下载内容见各节说明。
 
 ## 1. 初步结论
 
 建议先按三个层次考虑：
 
-1. **中文主候选：DuRetrieval（C-MTEB）**。规模相对适中，适合先搭建中文检索实验流程；但 Hugging Face 数据卡目前信息不完整，许可证需要进一步核实。
+1. **中文数据集：DuRetrieval（C-MTEB）**。规模适中、标注完整，官方仓库声明 Apache-2.0，授权核验与格式验证已完成（2026-11-20），作为正式中文实验数据集。
 2. **英文流程验证：BEIR / SciFact**。数据规模较小，结构清楚，适合快速验证 Corpus、Queries、Qrels 加载、BM25、Dense 和指标计算。
 3. **大规模中文扩展：T2Ranking**。数据规模和标注质量更有研究价值，但完整数据体量较大，不适合作为第一份需要立刻跑通的数据。
 
@@ -17,7 +17,7 @@
 
 | 数据集 | 语言 / 任务 | 规模与标注 | 许可证与获取 | 初步判断 |
 | --- | --- | --- | --- | --- |
-| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 约 102,001 条；Queries 约 4,000 条（C-MTEB 任务测试样本数）；独立 Qrels 约 9,839 条标注 | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。数据卡未明确给出许可证，需追溯原始数据集授权 | **中文首选候选**，但授权核验是前置事项 |
+| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 100,001 条；Queries 2,000 条；独立 Qrels 9,839 条标注（二值） | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。官方仓库（baidu/DuReader）声明 Apache-2.0，HF 镜像未标 license | **已选定**：授权核验与格式验证完成（2026-11-20） |
 | BEIR / SciFact | 英文科学事实核查检索 | Corpus 5,183 篇；官方 BEIR test 查询 300 条；另有 train/test 查询与 Qrels | [Hugging Face 数据集](https://huggingface.co/datasets/BeIR/scifact)，页面标注 CC-BY-SA-4.0；也可通过 BEIR 官方加载器下载 | **小规模流程验证首选**，数据较小，容易快速跑通 |
 | T2Ranking | 中文 Passage Retrieval / Ranking | Collection 2,303,643 条；Dev/Test Queries 各 24,832 条；提供 retrieval 与 reranking 的不同 Qrels | [项目仓库](https://github.com/THUIR/T2Ranking)；[Hugging Face 数据集](https://huggingface.co/datasets/THUIR/T2Ranking)，标注 Apache-2.0。完整数据仓库页面显示约 16.5 GB | **后续大规模扩展**，首轮不建议完整下载 |
 
@@ -25,28 +25,36 @@
 
 ### 3.1 DuRetrieval
 
-这里指 C-MTEB 在 Hugging Face 上整理的 DuRetrieval 评测版本，不要与百度发布的原始完整 DuReader Retrieval 数据集混为一谈。
+这里指 C-MTEB 在 Hugging Face 上整理的 DuRetrieval 评测版本，不要与百度发布的原始完整 DuReader Retrieval 数据集（约 8.09M 段落）混为一谈。课程实验使用 C-MTEB 子集（100,001 段落），**不下载、不使用百度原始 8.09M 段落版本**。
 
-- C-MTEB 版本：Corpus 约 102,001 条，C-MTEB 任务列表标注测试样本数为 4,000，Qrels 约 9,839 条。
-- 百度原始 DuReader Retrieval：官方说明包含约 8.09M 段落，训练约 86K 个 Query-相关段落样本，开发集约 2K、测试集约 4K；原始数据下载说明指向官方数据集介绍页，可能需要注册获取。
+实测规模（2026-11-20 下载并校验）：
 
-来源：C-MTEB（Chinese Massive Text Embedding Benchmark）在 Hugging Face 上提供的整理版本，以及百度 DuReader 官方项目说明。
+- Corpus：100,001 条（`corpus.jsonl` 约 92 MB）。
+- Queries：2,000 条。
+- Qrels（dev split）：9,839 条标注，全部为二值（score = 1）；覆盖全部 2,000 条 query，
+  平均每 query 4.92 篇相关文档。
+- 引用完整性：qrels 中 9,792 个唯一文档全部存在于 corpus，无缺失；全部 query 均有标注。
 
-- Corpus 和 Queries 位于 `C-MTEB/DuRetrieval`。
-- 相关性标注单独放在 `C-MTEB/DuRetrieval-qrels`。
-- Hugging Face 页面显示 Corpus 约 102,001 条记录，整个数据集页面约 64.5 MB。
-- Qrels 页面显示约 9,839 条标注记录。
-- C-MTEB 任务列表将 DuRetrieval 的测试样本数列为 4,000；不同镜像或拆分页面展示的行数可能不同，正式下载后应以实际 Query / Qrels 文件和官方评测划分为准。
+获取方式（固定 commit，可复现）：
 
-注意事项：
-- Corpus / Queries 与 Qrels 分开发布，导入时需要按 ID 关联。
-- 当前数据卡的说明为 “More Information needed”，没有明确展示许可证字段。
-- 因此可以先做格式和技术验证，但正式课程实验前应确认原始数据来源和授权，不能把“公开可下载”直接等同于“许可证明确”。
+- Corpus / Queries：`C-MTEB/DuRetrieval`，commit `a1a333e290fe30b10f3f56498e3a0d911a693ced`。
+- Qrels：`C-MTEB/DuRetrieval-qrels`，commit `497b7bd1bbb25cb3757ff34d95a8be50a3de2279`（dev split）。
+- 本地存放：`data/raw/duretrieval/corpus.jsonl`、`queries.jsonl`、`qrels_dev.tsv`；
+  原始 parquet 文件不纳入版本库（`.gitignore`），可由上述 commit 重新下载。
+
+授权核验结论：
+
+- 官方 `baidu/DuReader` 仓库 README 声明 **Apache License 2.0**（Copyright 2017 Baidu.com），
+  覆盖 DuReader 系列数据集与基线。
+- Hugging Face 的 C-MTEB 镜像数据卡未标注 license（“More Information needed”），
+  属第三方搬运；使用时以官方仓库许可为准，并在实验报告中注明来源、许可证与下载 commit。
+- 原始完整数据需在百度 AI Studio 报名获取；课程实验采用 C-MTEB 子集，规模适中、标注完整。
+- 结论：**可作为正式中文实验数据集**，核验与格式验证完成。
 
 获取入口：
 - https://huggingface.co/datasets/C-MTEB/DuRetrieval
 - https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels
-- 百度原始数据说明：https://github.com/baidu/DuReader/blob/master/DuReader-Retrieval/README.md
+- 百度官方说明：https://github.com/baidu/DuReader/blob/master/DuReader-Retrieval/README.md
 
 ### 3.2 BEIR / SciFact
 
