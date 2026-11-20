@@ -1,7 +1,7 @@
 # 公开文本检索数据集调研
 
 > 调研日期：2026-11-19  
-> 状态：DuRetrieval 已完成授权核验与格式验证，作为正式中文实验数据集；SciFact 已完成英文流程验证。数据集许可证、版本和实际下载内容见各节说明。
+> 文档性质：历史数据集调研记录。当前实验已采用 DuRetrieval（C-MTEB 子集）作为中文正式实验数据集，SciFact 作为英文流程验证数据集。具体实验口径以当前实验结果和代码为准。
 
 ## 1. 初步结论
 
@@ -17,7 +17,7 @@
 
 | 数据集 | 语言 / 任务 | 规模与标注 | 许可证与获取 | 初步判断 |
 | --- | --- | --- | --- | --- |
-| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 100,001 条；Queries 2,000 条；独立 Qrels 9,839 条标注（二值） | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。官方仓库（baidu/DuReader）声明 Apache-2.0，HF 镜像未标 license | **已选定**：授权核验与格式验证完成（2026-11-20） |
+| DuRetrieval（C-MTEB） | 中文文本检索 | Corpus 100,001 条；Queries 2,000 条；独立 Qrels 9,839 条标注（二值） | [Corpus / Queries](https://huggingface.co/datasets/C-MTEB/DuRetrieval)；[Qrels](https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels)。官方仓库（baidu/DuReader）声明 Apache-2.0，HF 镜像未标 license | **已采用**：正式中文实验数据集 |
 | BEIR / SciFact | 英文科学事实核查检索 | Corpus 5,183 篇；官方 BEIR test 查询 300 条；另有 train/test 查询与 Qrels | [Hugging Face 数据集](https://huggingface.co/datasets/BeIR/scifact)，页面标注 CC-BY-SA-4.0；也可通过 BEIR 官方加载器下载 | **小规模流程验证首选**，数据较小，容易快速跑通 |
 | T2Ranking | 中文 Passage Retrieval / Ranking | Collection 2,303,643 条；Dev/Test Queries 各 24,832 条；提供 retrieval 与 reranking 的不同 Qrels | [项目仓库](https://github.com/THUIR/T2Ranking)；[Hugging Face 数据集](https://huggingface.co/datasets/THUIR/T2Ranking)，标注 Apache-2.0。完整数据仓库页面显示约 16.5 GB | **后续大规模扩展**，首轮不建议完整下载 |
 
@@ -116,22 +116,22 @@ T2Ranking 是面向中文 Passage Ranking 的大规模基准，来自真实搜�
 - 语料超过 230 万条，向量化和索引会带来明显的时间、内存与磁盘开销。
 - 如果后续使用，建议先只选定官方支持的一个评测划分，并核对对应的 Corpus、Queries 和 Retrieval Qrels。
 
-## 4. 对当前项目的建议
+## 4. 历史选型建议（供追溯，不代表当前待办）
 
-### 第一阶段：先跑通实验闭环
+### 第一阶段：实验闭环（已完成）
 
-优先用 SciFact 或 DuRetrieval 的小规模 / 完整可用划分，完成：
+当时建议优先使用 SciFact 或 DuRetrieval 完成以下工作；该阶段现已完成：
 1. 数据集加载与格式统一。
 2. BM25 检索。
 3. Dense Retrieval。
 4. 指标计算。
 5. 结果保存和比较。
 
-如果希望尽快验证代码链路，SciFact 更省事；如果希望从一开始就围绕中文任务，先核实 DuRetrieval 授权后再采用它。
+当前结果：SciFact 已完成英文流程验证；DuRetrieval（C-MTEB 子集）已完成授权核验、格式校验和中文正式实验。
 
-### 第二阶段：正式中文实验
+### 第二阶段：正式中文实验（已完成）
 
-将 DuRetrieval 作为中文主实验候选，比较：
+已使用 DuRetrieval 作为中文正式实验数据集，完成以下比较：
 - BM25。
 - Dense + Embedding 模型 A。
 - Dense + Embedding 模型 B。
@@ -139,9 +139,9 @@ T2Ranking 是面向中文 Passage Ranking 的大规模基准，来自真实搜�
 
 所有方法必须使用同一版本的 Corpus、Queries 和 Qrels。
 
-### 第三阶段：规模扩展
+### 第三阶段：规模扩展（未列入当前 MVP）
 
-如果课程时间和设备资源允许，再使用 T2Ranking 的检索评测划分，观察不同方法在大规模中文语料上的变化。
+T2Ranking 仍是可供未来研究参考的大规模数据集，但当前 TextMind 软件 MVP 不以增加大规模数据集为目标。
 
 ## 5. 重要实验原则
 
