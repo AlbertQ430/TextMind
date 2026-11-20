@@ -18,22 +18,34 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIR = PROJECT_ROOT / "data" / "evaluation"
 
 METRIC_COLUMNS = ["P@1", "NDCG@5", "NDCG@10", "R@10", "R@100", "MRR"]
+DATASET_LABELS = {"scifact": "SciFact", "duretrieval": "DuRetrieval"}
 
 
 def _config_key(config: dict) -> tuple:
     """同一实验配置的标识，用于去重时保留最新结果。"""
+    dataset = config.get("dataset", "scifact")
     if config.get("method") == "bm25":
-        return ("bm25", config.get("k1"), config.get("b"), config.get("top_k"))
+        return (
+            "bm25",
+            dataset,
+            config.get("k1"),
+            config.get("b"),
+            config.get("top_k"),
+            config.get("tokenizer", "simple"),
+        )
     if config.get("method") == "hybrid":
         return (
             "hybrid",
+            dataset,
             config.get("model"),
             config.get("top_k"),
             config.get("query_prefix", ""),
             config.get("rrf_k"),
+            config.get("tokenizer", "simple"),
         )
     return (
         "dense",
+        dataset,
         config.get("model"),
         config.get("top_k"),
         config.get("query_prefix", ""),
@@ -59,16 +71,24 @@ def load_results(directory: Path) -> list[dict]:
 
 
 def describe(config: dict) -> str:
+    dataset = DATASET_LABELS.get(config.get("dataset", "scifact"), config.get("dataset", "scifact"))
     method = config.get("method", "?")
     if method == "bm25":
-        return f"BM25 (k1={config.get('k1')}, b={config.get('b')})"
+        tokenizer = config.get("tokenizer", "simple")
+        if tokenizer != "simple":
+            inner = f"BM25 ({tokenizer}, k1={config.get('k1')}, b={config.get('b')})"
+        else:
+            inner = f"BM25 (k1={config.get('k1')}, b={config.get('b')})"
+        return f"{dataset}: {inner}"
     prefix = " (+自定义前缀)" if config.get("query_prefix") else ""
     if method == "hybrid":
-        return (
+        inner = (
             f"Hybrid: BM25 + {config.get('model', '?')} "
             f"(rrf_k={config.get('rrf_k')}){prefix}"
         )
-    return f"Dense: {config.get('model', '?')}{prefix}"
+    else:
+        inner = f"Dense: {config.get('model', '?')}{prefix}"
+    return f"{dataset}: {inner}"
 
 
 def build_table(results: list[dict]) -> str:

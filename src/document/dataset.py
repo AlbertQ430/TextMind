@@ -119,13 +119,13 @@ def _load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
     return qrels
 
 
-def load_scifact(
+def _load_retrieval_dataset(
     corpus_path: str | Path,
     queries_path: str | Path,
     qrels_path: str | Path,
-    name: str = "scifact",
+    name: str,
 ) -> RetrievalDataset:
-    """加载 SciFact 数据集并校验引用完整性。"""
+    """通用加载：JSONL corpus/queries + TREC 风格 qrels。"""
     corpus_path = Path(corpus_path)
     queries_path = Path(queries_path)
     qrels_path = Path(qrels_path)
@@ -151,3 +151,23 @@ def load_scifact(
     )
     dataset.validate()
     return dataset
+
+
+def load_scifact(
+    corpus_path: str | Path,
+    queries_path: str | Path,
+    qrels_path: str | Path,
+    name: str = "scifact",
+) -> RetrievalDataset:
+    """加载 SciFact 数据集（英文流程验证）并校验引用完整性。"""
+    return _load_retrieval_dataset(corpus_path, queries_path, qrels_path, name)
+
+
+def load_duretrieval(
+    corpus_path: str | Path,
+    queries_path: str | Path,
+    qrels_path: str | Path,
+    name: str = "duretrieval",
+) -> RetrievalDataset:
+    """加载 C-MTEB DuRetrieval 子集（中文正式实验数据集）并校验引用完整性。"""
+    return _load_retrieval_dataset(corpus_path, queries_path, qrels_path, name)

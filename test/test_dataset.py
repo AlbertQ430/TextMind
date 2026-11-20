@@ -13,6 +13,7 @@ from document.dataset import (  # noqa: E402
     Query,
     RetrievalDataset,
     _load_qrels,
+    load_duretrieval,
     load_scifact,
 )
 
@@ -107,6 +108,35 @@ class TestSciFact(unittest.TestCase):
 
     def test_document_text_not_empty(self):
         self.assertTrue(all(doc.text for doc in self.dataset.documents[:10]))
+
+
+DURETRIEVAL_DIR = ROOT / "data" / "raw" / "duretrieval"
+
+
+@unittest.skipUnless(
+    (DURETRIEVAL_DIR / "corpus.jsonl").exists(), "DuRetrieval 数据未下载"
+)
+class TestDuretrieval(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.dataset = load_duretrieval(
+            DURETRIEVAL_DIR / "corpus.jsonl",
+            DURETRIEVAL_DIR / "queries.jsonl",
+            DURETRIEVAL_DIR / "qrels_dev.tsv",
+        )
+
+    def test_sizes(self):
+        self.assertEqual(len(self.dataset.documents), 100001)
+        self.assertEqual(len(self.dataset.queries), 2000)
+        self.assertEqual(len(self.dataset.qrels), 2000)
+        self.assertEqual(
+            sum(len(rels) for rels in self.dataset.qrels.values()), 9839
+        )
+
+    def test_qrels_references_resolve(self):
+        doc_ids = {doc.doc_id for doc in self.dataset.documents}
+        for rels in self.dataset.qrels.values():
+            self.assertTrue(set(rels) <= doc_ids)
 
 
 if __name__ == "__main__":

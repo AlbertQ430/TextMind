@@ -56,6 +56,9 @@ python src/scripts/run_experiment.py --method dense
 # Hybrid 实验：BM25 + Dense + RRF 融合
 python src/scripts/run_experiment.py --method hybrid --model Qwen/Qwen3-Embedding-0.6B
 
+# 中文数据集（DuRetrieval，C-MTEB 子集）+ jieba 分词
+python src/scripts/run_experiment.py --dataset duretrieval --tokenizer jieba
+
 # 生成汇总表与图表
 python src/scripts/compare_experiments.py --output data/evaluation/summary.md
 python src/scripts/plot_results.py
@@ -80,24 +83,26 @@ python test/test_similarity.py
 
 ## 当前实验结果
 
-SciFact test split（300 queries），统一流程与评价口径：
-
-| 方法 | P@1 | NDCG@10 | R@100 | MRR |
-| --- | --- | --- | --- | --- |
-| BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
-| Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
-| Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
-| Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
-| Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
-| Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
-| Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | 0.5933 | 0.7111 | 0.9533 | 0.6842 |
-| Hybrid：BM25 + Qwen3-Embedding-0.6B + 自定义前缀（RRF） | **0.6033** | **0.7165** | 0.9567 | **0.6896** |
+| 数据集 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
+| --- | --- | --- | --- | --- | --- |
+| DuRetrieval dev | BM25（jieba 分词） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
+| SciFact test | BM25（k1=1.2, b=0.75） | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
+| SciFact test | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
+| SciFact test | Dense：Qwen3-Embedding-0.6B + 自定义前缀 | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
+| SciFact test | Dense：all-MiniLM-L6-v2 | 0.5033 | 0.6451 | 0.9250 | 0.6110 |
+| SciFact test | Dense：BGE-M3（无前缀） | 0.5100 | 0.6437 | 0.9037 | 0.6131 |
+| SciFact test | Dense：BGE-M3 + 自定义前缀 | 0.5300 | 0.6502 | 0.9077 | 0.6206 |
+| SciFact test | Hybrid：BM25 + Qwen3-Embedding-0.6B（RRF） | 0.5933 | 0.7111 | 0.9533 | 0.6842 |
+| SciFact test | Hybrid：BM25 + Qwen3-Embedding-0.6B + 自定义前缀（RRF） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
 
 完整汇总（含索引、查询编码与向量检索耗时）由 `python src/scripts/compare_experiments.py`
 生成，见 `data/evaluation/summary.md`。耗时列反映当次运行状态：命中缓存时
 对应编码耗时为 0。
 
-说明：查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
+说明：不同数据集的指标不可直接横向比较（语料、query 与 qrels 不同）；
+DuRetrieval 使用 dev split 的 9,839 条 qrels。
+
+查询前缀实验通过 `--query-prefix` 传入自定义前缀（BGE-M3 与
 Qwen3-Embedding 采用各自文档推荐的检索指令），与无前缀结果分开记录，
 不可直接混用比较；正式结论需注明所用配置。
 
@@ -110,10 +115,10 @@ Hybrid 实验中 BM25 始终使用原始 Query，仅 Dense 使用前缀；汇总
 
 项目目前已完成 SciFact 上的检索实验闭环：BM25 基线、三种 Embedding 模型对照
 （Qwen3-Embedding-0.6B、all-MiniLM-L6-v2、BGE-M3）、自定义查询前缀实验，
-以及 Hybrid（BM25 + Dense + RRF）融合实验，均完成 数据集加载 → 检索 →
-指标计算 → 结果落盘，并生成汇总表与图表。
+以及 Hybrid（BM25 + Dense + RRF）融合实验；并完成 DuRetrieval 中文数据集上的
+BM25 基线（jieba 分词）。实验汇总表与图表均已生成。
 
-下一步优先：中文正式实验数据集选型；结果错误分析与更多图表。
+下一步优先：中文数据集上的 Dense / Hybrid 实验；结果错误分析与更多图表。
 
 当前不冻结完整产品 SRS。项目范围以 [project-scope.md](docs/project-scope.md) 为准。
 

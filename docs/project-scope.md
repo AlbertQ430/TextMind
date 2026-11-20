@@ -84,5 +84,7 @@ TextMind 当前不是一个完整的个人知识管理软件，而是一个**文
       自定义前缀 0.7165；BM25 始终使用原始 Query，仅 Dense 使用前缀。
 - [x] Hybrid 耗时拆分（Query Encoding / BM25 检索 / Dense 检索 / RRF 融合 / 端到端检索）；
       缓存校验纳入 model_name、revision 与缓存版本号。
+- [x] 中文正式实验数据集：DuRetrieval（C-MTEB 子集，授权核验与格式验证完成）。
+- [x] 中文 BM25 基线（jieba 分词）：DuRetrieval dev，NDCG@10 = 0.5931，MRR = 0.7420。
 - [x] 结果分析图表：`data/evaluation/figures/`（指标柱状图、质量-耗时散点图）。
 - [ ] 中文正式实验数据集选型（仍待确定，见 `requirements/open-questions.md`）。

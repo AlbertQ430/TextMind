@@ -1,0 +1,56 @@
+{
+  "dataset": {
+    "name": "duretrieval",
+    "corpus_size": 100001,
+    "queries_size": 2000,
+    "qrels_pairs": 9839
+  },
+  "config": {
+    "dataset": "duretrieval",
+    "method": "bm25",
+    "top_k": 100,
+    "k_values": [
+      1,
+      5,
+      10,
+      100
+    ],
+    "k1": 1.2,
+    "b": 0.75,
+    "tokenizer": "jieba"
+  },
+  "metrics": {
+    "P@1": 0.661,
+    "R@1": 0.17523267028103245,
+    "NDCG@1": 0.661,
+    "P@5": 0.4365000000000001,
+    "R@5": 0.4880335610081749,
+    "NDCG@5": 0.5748671206379716,
+    "P@10": 0.28375000000000133,
+    "R@10": 0.5996469703536644,
+    "NDCG@10": 0.5931242413823763,
+    "P@100": 0.038150000000000094,
+    "R@100": 0.7769112203009849,
+    "NDCG@100": 0.6503144548527856,
+    "MRR": 0.7420489788522232
+  },
+  "num_queries": 2000,
+  "num_skipped": 0,
+  "timing": {
+    "load_seconds": 0.2318,
+    "model_load_seconds": 0.0,
+    "doc_cache_load_seconds": 0.0,
+    "corpus_encode_seconds": 31.343,
+    "query_cache_load_seconds": 0.0,
+    "query_encode_seconds": 0.0,
+    "index_seconds": 31.343,
+    "vector_search_total_seconds": 33.1648,
+    "search_total_seconds": 33.1648,
+    "search_mean_seconds": 0.016582,
+    "search_median_seconds": 0.009126
+  },
+  "environment": {
+    "python": "3.11.18",
+    "platform": "macOS-26.6-arm64-arm-64bit"
+  }
+}

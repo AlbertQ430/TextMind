@@ -93,6 +93,16 @@ class TestValidateArgs(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_args(args)
 
+    def test_dataset_and_tokenizer_defaults(self):
+        args = parse_args([])
+        self.assertEqual(args.dataset, "scifact")
+        self.assertEqual(args.tokenizer, "simple")
+
+    def test_duretrieval_choices(self):
+        args = parse_args(["--dataset", "duretrieval", "--tokenizer", "jieba"])
+        self.assertEqual(args.dataset, "duretrieval")
+        self.assertEqual(args.tokenizer, "jieba")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -52,10 +52,18 @@ class TestCompareExperiments(unittest.TestCase):
 
     def test_describe(self):
         self.assertIn("BM25", describe({"method": "bm25", "k1": 1.2, "b": 0.75}))
-        self.assertEqual(describe({"method": "dense", "model": "m"}), "Dense: m")
+        self.assertEqual(describe({"method": "dense", "model": "m"}), "SciFact: Dense: m")
         self.assertEqual(
             describe({"method": "dense", "model": "m", "query_prefix": "x"}),
-            "Dense: m (+自定义前缀)",
+            "SciFact: Dense: m (+自定义前缀)",
+        )
+
+    def test_describe_duretrieval(self):
+        self.assertEqual(
+            describe(
+                {"dataset": "duretrieval", "method": "bm25", "k1": 1.2, "b": 0.75, "tokenizer": "jieba"}
+            ),
+            "DuRetrieval: BM25 (jieba, k1=1.2, b=0.75)",
         )
 
     def test_prefix_variants_are_distinct(self):

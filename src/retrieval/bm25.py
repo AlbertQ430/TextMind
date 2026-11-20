@@ -30,6 +30,16 @@ def simple_tokenize(text: str) -> List[str]:
     return _TOKEN_RE.findall(text.lower())
 
 
+def jieba_tokenize(text: str) -> List[str]:
+    """中文分词（jieba），过滤空白 token。
+
+    jieba 在首次调用时加载词典，因此延迟导入本函数内。
+    """
+    import jieba
+
+    return [token for token in jieba.lcut(text.lower()) if token.strip()]
+
+
 class BM25Retriever(Retriever):
     """基于倒排索引与文档长度归一化的 BM25 检索器。"""
 

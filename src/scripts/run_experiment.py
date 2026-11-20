@@ -26,9 +26,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from document.dataset import load_scifact  # noqa: E402
+from document.dataset import load_duretrieval, load_scifact  # noqa: E402
 from evaluation.metrics import evaluate  # noqa: E402
-from retrieval.bm25 import BM25Retriever  # noqa: E402
+from retrieval.bm25 import BM25Retriever, jieba_tokenize, simple_tokenize  # noqa: E402
 from retrieval.dense import DenseRetriever  # noqa: E402
 from retrieval.hybrid import HybridRetriever  # noqa: E402
 
@@ -38,13 +38,26 @@ RESULT_DIR = PROJECT_ROOT / "data" / "evaluation"
 EMBEDDING_CACHE_DIR = PROJECT_ROOT / "data" / "processed" / "embeddings"
 DEFAULT_MODEL = "Qwen/Qwen3-Embedding-0.6B"
 
+DATASET_DIRS = {
+    "scifact": DATA_DIR,
+    "duretrieval": PROJECT_ROOT / "data" / "raw" / "duretrieval",
+}
+DATASET_FILES = {
+    "scifact": ("corpus.jsonl", "queries.jsonl", "qrels/test.tsv"),
+    "duretrieval": ("corpus.jsonl", "queries.jsonl", "qrels_dev.tsv"),
+}
+
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="SciFact 检索实验（BM25 / Dense）")
-    parser.add_argument("--corpus", default=str(DATA_DIR / "corpus.jsonl"))
-    parser.add_argument("--queries", default=str(DATA_DIR / "queries.jsonl"))
-    parser.add_argument("--qrels", default=str(DATA_DIR / "qrels" / "test.tsv"))
-    parser.add_argument("--name", default="scifact", help="数据集标识，用于结果命名")
+    parser = argparse.ArgumentParser(description="检索实验（BM25 / Dense / Hybrid）")
+    parser.add_argument("--dataset", choices=["scifact", "duretrieval"], default="scifact")
+    parser.add_argument("--corpus", default=None, help="默认按 --dataset 选择")
+    parser.add_argument("--queries", default=None, help="默认按 --dataset 选择")
+    parser.add_argument("--qrels", default=None, help="默认按 --dataset 选择")
+    parser.add_argument("--name", default=None, help="数据集标识，用于结果命名（默认取 --dataset）")
+    parser.add_argument(
+        "--tokenizer", choices=["simple", "jieba"], default="simple", help="BM25 分词器"
+    )
     parser.add_argument("--method", choices=["bm25", "dense", "hybrid"], default="bm25", help="检索方法")
     parser.add_argument("--top-k", type=int, default=100, help="检索深度")
     parser.add_argument("--k", type=int, nargs="+", default=[1, 5, 10, 100], help="评价的 K 值")
@@ -146,23 +159,36 @@ def _model_revision(model, model_name: str | None = None) -> str | None:
     return None
 
 
+def _tokenizer(name: str):
+    return jieba_tokenize if name == "jieba" else simple_tokenize
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    base = DATASET_DIRS[args.dataset]
+    corpus_name, queries_name, qrels_name = DATASET_FILES[args.dataset]
+    args.corpus = args.corpus or str(base / corpus_name)
+    args.queries = args.queries or str(base / queries_name)
+    args.qrels = args.qrels or str(base / qrels_name)
+    args.name = args.name or args.dataset
     try:
         args = validate_args(args)
     except ValueError as exc:
         parser.error(str(exc))
 
     start = time.perf_counter()
-    dataset = load_scifact(args.corpus, args.queries, args.qrels, name=args.name)
+    loader = load_duretrieval if args.dataset == "duretrieval" else load_scifact
+    dataset = loader(args.corpus, args.queries, args.qrels, name=args.name)
     load_seconds = time.perf_counter() - start
 
     model_load_seconds = 0.0
     device = None
     torch = None
     if args.method == "bm25":
-        retriever = BM25Retriever(k1=args.k1, b=args.b)
+        retriever = BM25Retriever(
+            k1=args.k1, b=args.b, tokenizer=_tokenizer(args.tokenizer)
+        )
     else:
         import torch
         from sentence_transformers import SentenceTransformer
@@ -182,7 +208,12 @@ def main(argv=None) -> int:
         )
         if args.method == "hybrid":
             retriever = HybridRetriever(
-                [BM25Retriever(k1=args.k1, b=args.b), dense],
+                [
+                    BM25Retriever(
+                        k1=args.k1, b=args.b, tokenizer=_tokenizer(args.tokenizer)
+                    ),
+                    dense,
+                ],
                 rrf_k=args.rrf_k,
                 query_transforms=[None, lambda query: args.query_prefix + query],
             )
@@ -236,12 +267,13 @@ def main(argv=None) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     config = {
+        "dataset": args.dataset,
         "method": args.method,
         "top_k": args.top_k,
         "k_values": list(args.k),
     }
     if args.method == "bm25":
-        config.update({"k1": args.k1, "b": args.b})
+        config.update({"k1": args.k1, "b": args.b, "tokenizer": args.tokenizer})
     else:
         config.update(
             {
@@ -254,7 +286,14 @@ def main(argv=None) -> int:
             }
         )
         if args.method == "hybrid":
-            config.update({"k1": args.k1, "b": args.b, "rrf_k": args.rrf_k})
+            config.update(
+                {
+                    "k1": args.k1,
+                    "b": args.b,
+                    "rrf_k": args.rrf_k,
+                    "tokenizer": args.tokenizer,
+                }
+            )
 
     environment = {
         "python": sys.version.split()[0],
@@ -337,7 +376,7 @@ def main(argv=None) -> int:
           f"queries={len(eval_queries)}  qrels_pairs={result['dataset']['qrels_pairs']}")
     prefix_note = f"  query_prefix={args.query_prefix!r}" if args.query_prefix else ""
     if args.method == "bm25":
-        print(f"方法: BM25  k1={args.k1} b={args.b} top_k={args.top_k}")
+        print(f"方法: BM25  k1={args.k1} b={args.b} tokenizer={args.tokenizer} top_k={args.top_k}")
     elif args.method == "dense":
         print(f"方法: Dense  model={args.model} device={device} "
               f"batch_size={args.batch_size} top_k={args.top_k}{prefix_note}")

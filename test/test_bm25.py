@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from document.dataset import Document  # noqa: E402
-from retrieval.bm25 import BM25Retriever, simple_tokenize  # noqa: E402
+from retrieval.bm25 import BM25Retriever, jieba_tokenize, simple_tokenize  # noqa: E402
 
 
 def make_corpus():
@@ -63,6 +63,20 @@ class TestBM25(unittest.TestCase):
 
     def test_tokenizer(self):
         self.assertEqual(simple_tokenize("Hello, World! 2026"), ["hello", "world", "2026"])
+
+    def test_jieba_tokenize(self):
+        tokens = jieba_tokenize("人工智能正在改变自然语言处理技术。")
+        self.assertTrue(tokens)
+        self.assertIn("人工智能", tokens)
+
+    def test_jieba_tokenizer_injected(self):
+        corpus = [
+            Document("d1", "", "苹果手机很好用"),
+            Document("d2", "", "苹果是一种水果"),
+        ]
+        retriever = BM25Retriever(tokenizer=jieba_tokenize).fit(corpus)
+        results = retriever.search("苹果手机", top_k=2)
+        self.assertEqual(results[0][0], "d1")
 
 
 if __name__ == "__main__":

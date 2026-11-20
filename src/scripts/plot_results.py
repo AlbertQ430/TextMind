@@ -29,17 +29,26 @@ DEFAULT_OUTPUT = DEFAULT_DIR / "figures"
 METRICS = ["NDCG@10", "R@100", "MRR"]
 
 
+DATASET_LABELS = {"scifact": "SciFact", "duretrieval": "DuRetrieval"}
+
+
 def short_label(config: dict) -> str:
-    """图表中使用的简短方法标签。"""
+    """图表中使用的简短方法标签（含数据集前缀）。"""
     method = config.get("method", "?")
     if method == "bm25":
-        return "BM25"
-    model = config.get("model", "?").split("/")[-1]
-    model = model.replace("Qwen3-Embedding-0.6B", "Qwen3-0.6B")
-    suffix = " +prefix" if config.get("query_prefix") else ""
-    if method == "hybrid":
-        return f"Hybrid ({model}){suffix}"
-    return f"Dense ({model}){suffix}"
+        label = "BM25"
+        if config.get("tokenizer") == "jieba":
+            label += " (jieba)"
+    else:
+        model = config.get("model", "?").split("/")[-1]
+        model = model.replace("Qwen3-Embedding-0.6B", "Qwen3-0.6B")
+        suffix = " +prefix" if config.get("query_prefix") else ""
+        if method == "hybrid":
+            label = f"Hybrid ({model}){suffix}"
+        else:
+            label = f"Dense ({model}){suffix}"
+    dataset = config.get("dataset", "scifact")
+    return f"{DATASET_LABELS.get(dataset, dataset)}: {label}"
 
 
 def plot_metric_bars(results: list[dict], output: Path) -> None:
@@ -63,7 +72,7 @@ def plot_metric_bars(results: list[dict], output: Path) -> None:
     ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("score")
-    ax.set_title("SciFact test split: retrieval metrics")
+    ax.set_title("Retrieval metrics (SciFact test / DuRetrieval dev)")
     ax.legend()
     fig.tight_layout()
     fig.savefig(output, dpi=150)
@@ -82,7 +91,7 @@ def plot_efficiency(results: list[dict], output: Path) -> None:
     ax.set_xscale("log")
     ax.set_xlabel("per-query retrieval latency (ms, log; excl. query encoding)")
     ax.set_ylabel("NDCG@10")
-    ax.set_title("SciFact test split: quality vs. retrieval latency")
+    ax.set_title("Quality vs. retrieval latency (SciFact / DuRetrieval)")
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)
