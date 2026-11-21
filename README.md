@@ -1,195 +1,253 @@
 # TextMind
 
-TextMind 正从文本检索算法实验项目，演进为一个**可交互的文本检索实验台**。当前阶段优先把已有检索实验能力封装成本地 Web 演示软件；知识库管理等更大的产品方向暂不纳入当前 MVP。
+TextMind 是一个在本机运行的文本检索实验台。它把 BM25、Dense Retrieval 和 Hybrid Retrieval（RRF）实验封装成 Web 界面，适合浏览预设结果、重新运行单个变体，以及比较同一方案版本下的多次结果。
 
-> **当前定位**：以预设基准实验为核心，让用户选择方案中的一个实验变体、运行实验，并查看检索指标、耗时与结果。
->
-> **开发策略**：先完成实验演示型 MVP，再逐步开放有限的算法、模型和参数配置能力。项目不以通用检索研究平台为目标。
+TextMind 不依赖云服务。默认只监听本机，也可以由主机主动开启可信局域网访问。软件不会自动下载模型或数据集，也不会在应用内删除运行记录。
 
-## 当前产品范围
+## 当前版本与支持范围
 
-### MVP：实验演示
+- 支持 Windows 11 与 macOS。
+- 已验证 Python 3.11。
+- 浏览器支持基线：**Safari 17、Edge 120**。
+- 发布包自带 SciFact 数据和 17 条预置结果，不需要额外模型即可查看。
+- 重新运行 BM25 只需要 SciFact；Dense 和 Hybrid 需要用户自行准备本地 Embedding 模型。
+- 不随包分发 DuRetrieval 或 Embedding 模型。
 
-- 本地 Web 应用，由用户自己的电脑运行服务，通过浏览器访问。
-- 可选开启局域网访问，其他设备通过主机局域网地址访问同一实例；不依赖云服务器，不做公网访问和多用户账号系统。
-- 采用左侧固定导航栏 + 右侧独立工作区，包含实验中心、运行监控、实验结果、历史记录四个主要页面；资源和环境配置放在次级设置入口。
-- 内置预设实验方案和对应的预置结果，打开软件即可浏览实验结果。
-- 支持重新运行任一可运行的预设变体，实际调用检索流程并生成新的实验结果。
-- 同一时间只运行一个实验，其他任务进入等待队列；任务由后端统一管理。
-- 运行时展示当前实验阶段，不要求量化整体进度；支持取消运行，失败 / 取消的运行也保留记录和相关信息。
-- 每次运行生成独立 JSON 记录及图表文件；JSON 使用相对路径引用图表，并支持导入单份 JSON 查看结果。
-- 导入时将 JSON 和可用图表复制到 `results/imports/<run_id>/`；缺少图表不阻止导入，格式版本不兼容时拒绝导入。
-- 展示现有实验指标（P@K、R@K、MRR、NDCG@K）和分阶段耗时；算法、Embedding 模型、参数和耗时对比图由比较页面按所选记录生成。
-- 结果按 `results/presets`、`results/runs`、`results/imports` 区分来源，JSON 不保存来源和导入时间。
-- 历史比较限定在同一方案及版本内；时间戳区分每次运行，稳定的方案 ID、版本和变体 ID 用于归组与比较。
-- 实验记录由用户通过文件管理器管理，应用内不提供删除功能；results/README.md 说明 JSON 与图表的关系及预置结果删除后果。
-- 记录实验环境信息，以便理解不同设备和软件环境下的运行差异。
-- SciFact 默认随软件提供并附带来源 / CC-BY-SA-4.0 许可说明；DuRetrieval 由用户自行获取，软件提供来源和路径配置；Embedding 模型文件由用户自行准备。
-- 用户配置统一模型根目录，TextMind 按预设模型名称查找对应子目录；不自动扫描、下载或整理资源。
-- 复用现有 test 脚本进行 Python 环境自检；MVP 不自动安装依赖。
-- 尽量复用现有 Python 检索核心、实验配置和结构化结果，不为 Web 界面重写算法实现。
+## 快速开始
 
-### 后续演进：有限实验配置
-
-在 MVP 稳定后，再逐步考虑：
-- 选择已支持的检索算法与 Embedding 模型。
-- 调整有限范围内的算法参数，例如 BM25 参数、RRF 权重。
-- 继续完善同一方案及版本下的运行历史查看与比较。
-- 视需求增加可选数据集。
-
-以下方向不属于当前产品路线：任意第三方检索器 / 模型插件、自由组合检索流水线、自动调参研究平台、个人知识库管理、AI 问答与笔记生成、云端部署和公网访问。
-
-## 已有技术基础
-
-TextMind 已完成一轮文本检索算法实验，相关实验代码与成果是软件化的基础：
-
-- **检索方法**：BM25、Dense Retrieval、Hybrid Retrieval（RRF）。
-- **数据集**：英文 SciFact、中文 DuRetrieval（C-MTEB 子集）。
-- **Embedding 模型**：Qwen3-Embedding-0.6B、BGE-M3、bge-small-zh-v1.5、all-MiniLM-L6-v2。
-- **评价指标**：Precision@K、Recall@K、MRR、NDCG@K，以及分阶段耗时。
-- **实验产物**：结构化 JSON 结果、汇总表和图表。
-- **开发环境**：以 SDS 和当前环境检查脚本的结果为准。
-
-实验结论和数据集信息属于已有技术资料，不代表软件 MVP 已经实现相应 GUI 功能。
-
-## 安装、检查与启动
-
-需要 Python 3.11（本项目在 3.11.18 上验证）。依赖统一安装在项目根目录 `.venv`，不使用全局环境、不下载模型或数据集。
+先在项目根目录安装依赖。依赖只写入项目内的 `.venv`，不会安装到系统 Python。
 
 ### macOS
 
 ```bash
-# 1. 创建 .venv 并从 requirements.lock 安装锁定依赖
-#    当前 python3 不是 3.11 时，用 --python 或 TEXTMIND_PYTHON 指定 3.11 解释器
+# 当前 python3 不是 3.11 时，用 --python 指定 Python 3.11 解释器
 python3 scripts/install.py --python /path/to/python3.11
 
-# 2. 检查 Python 3.11 与核心依赖
 .venv/bin/python scripts/check_env.py
-
-# 3. 启动本地服务（默认 http://127.0.0.1:8765，仅监听回环地址）
 .venv/bin/python scripts/start.py
-# 或双击 start.command
+
+# 也可以在访达中双击 start.command
 ```
 
 ### Windows
 
 ```bat
-:: 1. 创建 .venv 并安装锁定依赖
 py -3.11 scripts\install.py
 
-:: 2. 检查 Python 3.11 与核心依赖
 .venv\Scripts\python.exe scripts\check_env.py
-
-:: 3. 启动本地服务
 .venv\Scripts\python.exe scripts\start.py
-:: 或双击 start.bat
+
+:: 也可以双击 start.bat
 ```
 
-- 双击入口 `start.command`（macOS）与 `start.bat`（Windows）从自身所在目录定位项目根目录，不依赖当前工作目录；缺少 `.venv` 时以非零退出码结束并提示运行 `scripts/install.py`，不自动创建虚拟环境或安装依赖。
-- 依赖版本以 `requirements.lock` 为唯一来源；安装失败时脚本返回非零退出码。
-- 如果 Windows 上 pip 长时间停在 `Using pip` 且没有网络或磁盘活动，可先执行 `set PIP_NO_CACHE_DIR=1`，再重试同一条安装命令。
-- 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
-- 默认只监听 `127.0.0.1`；可在设置页按需开启局域网访问（见下文），启动脚本会按设置自动恢复；不自动打开浏览器。
-- 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。`/settings` 可编辑模型根目录、DuRetrieval 目录与计算设备，并查看资源与环境状态；也可在设置页开启局域网访问。
-- 历史页支持导入单份 JSON 到 `results/imports/`；运行记录的移动、删除和恢复后果见 [results/README.md](results/README.md)。
+如果 Windows 上 pip 长时间停在 `Using pip`，且没有网络或磁盘活动，可先执行：
 
-### 浏览器支持
-
-发布基线固定为：**Safari 17、Edge 120**，覆盖主要页面、上传和 SSE。Chrome 与 Firefox 已由用户从支持范围取消；低版本或其他浏览器不在承诺范围内。人工验收必须记录实际浏览器名称和版本。
-
-### 发布包
-
-```bash
-.venv/bin/python scripts/package_release.py --check
-.venv/bin/python scripts/package_release.py --output dist/textmind-0.1.0.zip
+```bat
+set PIP_NO_CACHE_DIR=1
+py -3.11 scripts\install.py
 ```
 
-- `--check` 只读校验必需文件、SciFact 来源/署名/许可证、评估源文件和预置构建依赖；缺失时返回非零并输出具体路径。
-- `--output` 调用同一检查；ZIP 顶层目录固定为 `textmind-0.1.0/`，包含源码、脚本、配置、Schema、SciFact 原始数据、评估 JSON、发布资产、`docs/`、17 条预置结果及图表、`MANIFEST.txt`（按 POSIX 路径排序的 SHA-256 清单）。
-- 不包含 `.git/`、`.venv/`、`data/app/`、`logs/`、`results/runs/`、`results/imports/`、`dist/`、`__pycache__/`、`*.pyc` 和 `.DS_Store`；预置结果只在打包暂存目录构建，不提交到 Git。
-- 构建成功会打印 ZIP 的 SHA-256；相同输入会产生相同的归档条目顺序。
+启动后在浏览器打开：
 
-## 设置、数据与模型准备
+```text
+http://127.0.0.1:8765/
+```
 
-设置保存在 `data/app/settings.json`，也可在 `/settings` 页面编辑。默认值为：模型根目录未配置、DuRetrieval 目录未配置、设备 `auto`、本机端口 8765、局域网端口 8766。
+服务默认只监听回环地址，不会自动打开浏览器。启动前会检查 Python 和核心依赖；依赖缺失或端口被占用时会阻止启动并在终端显示原因。
 
-| 资源 | 位置 | 说明 |
+## 使用流程
+
+### 1. 浏览实验方案
+
+“实验中心”提供三套预设方案：
+
+- SciFact 英文检索方法与模型对比。
+- DuRetrieval 中文检索方法对比。
+- DuRetrieval 加权 RRF 参数探索。
+
+每套方案包含多个固定变体。进入方案详情可以查看算法、数据集划分、模型、查询前缀、RRF 权重、资源状态和预置结果。
+
+### 2. 查看预置结果
+
+历史页按来源展示三类记录：
+
+| 来源 | 目录 | 说明 |
 | --- | --- | --- |
-| SciFact | `data/raw/scifact/` | 随仓库提供：`corpus.jsonl`、`queries.jsonl`、`qrels/test.tsv`；来源与许可见 [NOTICE.md](NOTICE.md) 与 [resources/scifact/SOURCE.md](resources/scifact/SOURCE.md) |
-| DuRetrieval | 设置中的 `duretrieval_root` | dev 划分，需要 `corpus.jsonl`、`queries.jsonl`、`qrels_dev.tsv`；不随包分发 |
-| Embedding 模型 | `<model_root>/<directory_name>/` | 4 个唯一模型，目录名与 revision 见下表 |
+| 预置结果 | `results/presets/` | 软件包随附的参考结果 |
+| 本机运行 | `results/runs/` | 用户在本机重新运行产生的结果 |
+| 导入记录 | `results/imports/` | 从单份 JSON 导入的结果 |
 
-模型目录约定（目录名必须与方案中的 `directory_name` 一致，且包含 `config.json`、权重文件与 tokenizer 文件）：
+RRF 等权结果只作为参照，不计入普通历史；可以从对应的加权 RRF 方案详情打开。
+
+### 3. 运行单个变体
+
+在方案详情中选择一个可运行变体，点击“运行”。每次任务只执行一个变体，不会隐式运行同方案的其他变体。
+
+同一时间只有一个实验运行，其他任务按提交顺序等待。关闭或刷新浏览器不会取消已经提交的任务。
+
+### 4. 观察和取消任务
+
+“运行监控”显示当前任务、等待队列、阶段、已完成阶段和运行时间。取消运行中的任务时，任务先进入取消中，并在安全的阶段边界停止；“取消中”可能持续到当前模型加载或批量编码结束。
+
+等待中的任务可以立即取消，且不会生成运行记录。
+
+### 5. 查看和比较结果
+
+结果页显示：
+
+- 方案、版本、变体、运行 ID 和状态。
+- P@K、R@K、MRR、NDCG@K 等聚合指标。
+- 数据集加载、模型加载、缓存、编码、检索与融合等分阶段耗时。
+- 图表、配置和运行环境。
+
+结果页不展示查询级检索明细。历史页只能比较方案 ID 和版本均相同的记录；比较图按所选记录即时生成，不写回原 JSON。
+
+## 准备数据与模型
+
+### SciFact
+
+SciFact 随软件提供，位于 `data/raw/scifact/`，包含：
+
+```text
+corpus.jsonl
+queries.jsonl
+qrels/test.tsv
+```
+
+来源、署名和 CC-BY-SA-4.0 许可证见 [NOTICE.md](NOTICE.md) 与 [SciFact 来源说明](resources/scifact/SOURCE.md)。
+
+### DuRetrieval
+
+DuRetrieval 不随软件提供。用户自行获取 dev 数据后，在“设置”中填写目录。目录需要包含：
+
+```text
+corpus.jsonl
+queries.jsonl
+qrels_dev.tsv
+```
+
+获取入口、固定 commit 和许可信息见 [NOTICE.md](NOTICE.md) 与 [数据集说明](docs/datasets.md)。
+
+### Embedding 模型
+
+所有模型放在同一个模型根目录下，子目录名必须与下表一致：
 
 ```text
 <model_root>/
-  Qwen3-Embedding-0.6B/      # Qwen/Qwen3-Embedding-0.6B @ 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
-  bge-m3/                    # BAAI/bge-m3 @ 5617a9f61b028005a4858fdac845db406aefb181
-  all-MiniLM-L6-v2/          # sentence-transformers/all-MiniLM-L6-v2 @ 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
-  bge-small-zh-v1.5/         # BAAI/bge-small-zh-v1.5 @ 7999e1d3359715c523056ef9478215996d62a620
+  Qwen3-Embedding-0.6B/
+  bge-m3/
+  all-MiniLM-L6-v2/
+  bge-small-zh-v1.5/
 ```
 
-- 应用只从 `<model_root>/<目录名>` 读取本地模型文件并启用本地文件模式，**不会自动下载模型或数据**，也不会扫描磁盘自动寻找资源。
-- 缺少模型只禁用 Dense / Hybrid 变体；BM25 和预置结果仍可查看。
-- 显式选择不可用的 `cuda` / `mps` 时，依赖模型的变体标记为不可运行，不会静默回退到 CPU。
-- 设备实际生效值、依赖版本和各资源状态可在 `/settings` 查看。
+| 模型 | revision | 来源 |
+| --- | --- | --- |
+| Qwen/Qwen3-Embedding-0.6B | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | [Hugging Face](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) |
+| BAAI/bge-m3 | `5617a9f61b028005a4858fdac845db406aefb181` | [Hugging Face](https://huggingface.co/BAAI/bge-m3) |
+| sentence-transformers/all-MiniLM-L6-v2 | `1110a243fdf4706b3f48f1d95db1a4f5529b4d41` | [Hugging Face](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) |
+| BAAI/bge-small-zh-v1.5 | `7999e1d3359715c523056ef9478215996d62a620` | [Hugging Face](https://huggingface.co/BAAI/bge-small-zh-v1.5) |
 
-预置结果构建（离线，需要 SciFact 原始数据与来源/许可证文件）：
+应用只从本地目录加载模型并启用离线文件模式，**不会自动下载**模型或数据集，也不会自动扫描磁盘。缺少某个模型时，只禁用依赖该模型的变体，BM25 和预置结果仍可使用。
 
-```bash
-.venv/bin/python scripts/build_presets.py --check-assets-only
-.venv/bin/python scripts/build_presets.py --output results/presets
-# 输出目录已有预置记录时，显式替换：
-.venv/bin/python scripts/build_presets.py --force
-```
-
-- 构建会校验方案配置与旧评估 JSON 一致，按 SDS §8.5.3 映射 14 项 timing，并为每条记录生成指标/耗时图表。
-- 旧结果没有正式起止时间：结束时间取源文件 mtime（UTC），开始时间按可分解 timing 反推；这是归档时间推导，原文件不被修改。
+资源配置和实际设备状态可在 `/settings` 页面查看。
 
 ## 局域网访问
 
-- 默认只监听 `127.0.0.1`；在 `/settings` 页“局域网访问”中开启后，应用用同一进程、同一任务队列和结果目录在 `0.0.0.0:<lan_port>`（默认 8766）增加第二个监听器。
-- 开启后 Local 页面显示非回环 IPv4 访问地址和临时访问码；访问码只保存在内存中，关闭局域网或重启进程后失效。
-- 局域网设备打开 `http://<IPv4>:<lan_port>/lan/login`，输入访问码后获得 8 小时会话（未登录的预认证会话 10 分钟）。
-- 局域网客户端可以查看方案、运行监控、结果与历史，提交/取消任务并确认系统提示；**不能**修改设置、导入 JSON 或开关局域网，直接访问这些接口返回 404。
-- 局域网使用 HTTP 明文传输，访问码和数据不加密；请只在可信网络使用，不要通过公网或不可信 Wi-Fi 开启。
-- 关闭局域网会立即清除全部局域网会话并停止监听；Local 会话和正在运行的任务不受影响。
+默认只允许本机访问。主机可以在 `/settings` 的“局域网访问”中开启第二个监听器：
 
-## 实验结果概览
+1. 设置 LAN 端口，默认 `8766`。
+2. 点击“开启局域网”。
+3. 在其他设备打开页面显示的 `http://<主机 IPv4>:<端口>/`。
+4. 输入主机设置页显示的临时访问码。
 
-以下为已有实验中的代表性结果。不同数据集使用不同语料、查询和标注，**不可跨数据集直接比较**。
+局域网客户端可以查看方案、监控、结果和历史，提交或取消实验任务，并确认系统提示。局域网客户端不能修改主机设置、导入 JSON 或开关局域网。
 
-| 数据集 | 方法 | P@1 | NDCG@10 | R@100 | MRR |
-| --- | --- | ---: | ---: | ---: | ---: |
-| DuRetrieval dev | BM25（jieba） | 0.6610 | 0.5931 | 0.7769 | 0.7420 |
-| DuRetrieval dev | Dense：bge-small-zh-v1.5（无前缀） | 0.8195 | 0.7949 | 0.9429 | 0.8751 |
-| DuRetrieval dev | Dense：bge-small-zh-v1.5（有前缀） | 0.8260 | 0.7900 | 0.9395 | 0.8787 |
-| DuRetrieval dev | Hybrid：BM25 + Dense（等权 RRF） | 0.7825 | 0.7233 | 0.9338 | 0.8431 |
-| SciFact test | BM25 | 0.5333 | 0.6605 | 0.8859 | 0.6312 |
-| SciFact test | Dense：Qwen3-Embedding-0.6B（无前缀） | 0.5500 | 0.6766 | 0.9333 | 0.6439 |
-| SciFact test | Dense：Qwen3-Embedding-0.6B（有前缀） | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
-| SciFact test | Hybrid：BM25 + Qwen3（有前缀，RRF） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
+访问码只保存在内存中；关闭局域网或重启服务后失效。局域网使用 HTTP 明文传输，请只在可信网络使用，不要暴露到公网。
 
-DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完成，不应解读为独立测试集上的泛化结论。完整指标与耗时汇总见 [实验汇总表](data/evaluation/summary.md)，开发环境与运行约束见 [SDS](docs/design/SDS.md)。
+## 结果文件管理
 
-## 文档导航
+每个运行记录位于 `results/<来源>/<run_id>/`：
 
-- [当前产品范围与 MVP](docs/project-scope.md)
-- [已确认的产品决策](docs/requirements/confirmed-decisions.md)
-- [软件需求规格说明书（SRS v0.2，冻结）](docs/requirements/SRS.md)
-- [SRS / 技术设计待处理事项](docs/requirements/open-questions.md)
-- [软件设计说明书（SDS v0.1 评审通过版）](docs/design/SDS.md)
-- [SRS v0.2 至 SDS 需求追溯矩阵](docs/design/srs-v0.2-traceability.md)
-- [Codex / DSH 开发协作规则](AGENTS.md)
-- [开发计划](docs/development/plan.md)
-- [开发任务索引](docs/development/README.md)
-- [开发任务模板](docs/development/TEMPLATE.md)
-- [检索实验与执行约定](docs/requirements/retrieval-lab.md)
-- [数据集调研记录](docs/datasets.md)
-- [第三方资源与许可 NOTICE](NOTICE.md)
+```text
+run.json
+charts/
+  metrics.png
+  timing.png
+```
+
+- `run.json` 是运行记录的唯一事实源。
+- JSON 使用相对路径引用图表。
+- 移动整个记录目录可以保留图表；只移动 JSON 会导致图表不可用。
+- 应用内没有删除功能。请通过文件管理器管理记录。
+- 预置结果被删除后不会自动恢复。
+
+完整说明见 [结果目录说明](results/README.md)。
+
+## 导入 JSON
+
+在“历史记录”中选择单份 `.json` 文件导入，最大 5 MiB。导入时：
+
+- JSON 会复制到 `results/imports/<run_id>/`，原始内容不变。
+- 原始实验时间和环境信息保持不变。
+- 缺失图表不会阻止导入，结果页会逐项标记不可用。
+- 重复 Run ID、不兼容格式版本或路径越界会被拒绝。
+- 未知方案或变体可以只读查看，但不能参与比较。
+
+## 常见问题
+
+### 启动时提示环境检查失败
+
+重新执行安装脚本，然后运行：
+
+```bash
+.venv/bin/python scripts/check_env.py
+```
+
+Windows 对应命令为：
+
+```bat
+.venv\Scripts\python.exe scripts\check_env.py
+```
+
+### 端口被占用
+
+默认本机端口是 `8765`。关闭占用端口的程序，或指定其他端口：
+
+```bash
+.venv/bin/python scripts/start.py --port 8780
+```
+
+### Dense 或 Hybrid 显示“不可运行”
+
+在 `/settings` 检查模型根目录、模型子目录名、权重文件、tokenizer 文件和计算设备。显式选择不可用的 CUDA/MPS 时不会静默回退到 CPU。
+
+### DuRetrieval 变体不可运行
+
+确认 `duretrieval_root` 指向包含 `corpus.jsonl`、`queries.jsonl` 和 `qrels_dev.tsv` 的目录。只缺少 DuRetrieval 不会影响 SciFact BM25 和预置结果。
+
+### 局域网设备打不开页面
+
+确认功能已开启、端口未被防火墙阻止、设备与主机在同一局域网，并使用设置页显示的具体 IPv4 地址。HTTP 连接在地址栏可能显示“不安全”，这是明文局域网的预期提示。
+
+## 发布包
+
+发布 ZIP 自带 SciFact、来源与许可证、17 条预置结果、图表、配置、Schema 和运行代码。用户解压后仍需按上面的步骤创建 `.venv`。
+
+发布包不包含 Embedding 模型、DuRetrieval、本机运行记录或应用数据。
+
+## 文档与许可
+
+- [产品范围](docs/project-scope.md)
+- [软件需求规格说明书](docs/requirements/SRS.md)
+- [软件设计说明书](docs/design/SDS.md)
+- [数据集说明](docs/datasets.md)
+- [检索实验约定](docs/requirements/retrieval-lab.md)
 - [结果目录说明](results/README.md)
+- [第三方资源与许可](NOTICE.md)
 - [SciFact 来源与许可](resources/scifact/SOURCE.md)
 
-## 当前阶段说明
+本软件及其第三方资源的许可信息以 [NOTICE.md](NOTICE.md) 和随附许可证文件为准。
 
-核心功能已实现，T-011 发布验收已完成（验收记录见 [T-011](docs/development/T-011.md)）。Windows 11 实机和 Safari 26.6、Edge 158 人工验收均已通过；Chrome/Firefox 已取消，不计入支持范围。
+## 当前版本
+
+当前版本已完成 Windows 11 实机，以及 Safari 26.6、Edge 158 人工验收。Chrome/Firefox 不在支持范围内。

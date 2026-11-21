@@ -4,7 +4,8 @@
 
 ## 1. 核心规则
 
-- 根目录 [AGENTS.md](../../AGENTS.md) 定义角色、状态流转和验收规则。
+- [AGENTS.md](AGENTS.md) 定义 AI 协作角色、状态流转和验收规则。
+- [open-questions.md](open-questions.md) 记录已完成开发项和剩余验证状态。
 - 每个开发任务使用一个 `T-xxx.md`。
 - 同一个任务文件同时保存任务定义、实现交接和验收结论。
 - 需求基线是冻结的 [SRS v0.2](../requirements/SRS.md)。

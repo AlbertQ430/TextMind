@@ -121,6 +121,7 @@ class PackageBuildTests(unittest.TestCase):
             "start.command",
             "start.bat",
             "MANIFEST.txt",
+            "docs/development/AGENTS.md",
             "results/README.md",
         ):
             self.assertIn(prefix + required, names)
@@ -375,16 +376,18 @@ class StartupErrorTests(unittest.TestCase):
 class StageStatementTests(unittest.TestCase):
     def test_readme_stage_matches_current_state(self) -> None:
         readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-        stage = readme[readme.index("## 当前阶段说明"):]
+        stage = readme[readme.index("## 当前版本"):]
         self.assertIn("Windows 11 实机", stage)
         self.assertIn("Safari 26.6、Edge 158", stage)
-        self.assertIn("T-011 发布验收已完成", stage)
         self.assertNotIn("待补充", stage)
         self.assertNotIn("Safari/Chrome/Firefox", stage)
+        self.assertNotIn("T-011", readme)
+        self.assertNotIn("docs/development", readme)
+        self.assertNotIn("AGENTS.md", readme)
 
     def test_open_questions_stage_matches_current_state(self) -> None:
         text = (
-            PROJECT_ROOT / "docs" / "requirements" / "open-questions.md"
+            PROJECT_ROOT / "docs" / "development" / "open-questions.md"
         ).read_text(encoding="utf-8")
         stage = text[text.index("## 6. 阶段说明"):]
         self.assertIn("T-001 至 T-011 已完成", stage)

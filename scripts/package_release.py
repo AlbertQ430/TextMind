@@ -32,7 +32,7 @@ PRESET_COUNT = 17
 REQUIRED_FILES: tuple[str, ...] = (
     "README.md",
     "NOTICE.md",
-    "AGENTS.md",
+    "docs/development/AGENTS.md",
     "requirements.lock",
     "pyproject.toml",
     "start.command",

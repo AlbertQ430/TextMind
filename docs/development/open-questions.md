@@ -1,6 +1,6 @@
-# TextMind SRS 与技术设计待处理事项
+# TextMind 开发状态与待处理事项
 
-> 核心产品方向与 MVP 范围已确定，SRS v0.2 已冻结。SRS 见 [SRS.md](SRS.md)，SDS 见 [SDS](../design/SDS.md)，最终决策见 [confirmed-decisions.md](confirmed-decisions.md)。本文件只跟踪实现验证事项，不重新开启已确认的产品方向讨论。
+> 核心产品方向与 MVP 范围已确定，SRS v0.2 已冻结。SRS 见 [SRS.md](../requirements/SRS.md)，SDS 见 [SDS](../design/SDS.md)，最终决策见 [confirmed-decisions.md](../requirements/confirmed-decisions.md)。本文件只跟踪实现验证事项，不重新开启已确认的产品方向讨论。
 
 ## 1. 需求评审与方案映射
 
@@ -65,6 +65,6 @@
 
 ## 6. 阶段说明
 
-- SRS v0.2 已按 [已确认决策](confirmed-decisions.md) 完成修订并冻结。
+- SRS v0.2 已按 [已确认决策](../requirements/confirmed-decisions.md) 完成修订并冻结。
 - SDS v0.1 已通过设计评审；T-001 至 T-011 已完成，Windows 11、Safari 26.6 与 Edge 158 实机验收通过，Chrome/Firefox 已取消。
 - 技术选型已按 SDS 落地；本文件用于跟踪剩余实现验收事项。

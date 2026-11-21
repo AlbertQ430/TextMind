@@ -1,4 +1,4 @@
-# TextMind 协作开发规则
+# TextMind AI 协作开发规则
 
 这些规则适用于 TextMind 的 Codex / DeepSeek Harness（DSH）协同开发任务。普通问答和用户单独指派的工作仍以用户当次要求为准。
 
@@ -142,9 +142,10 @@ Codex 验收至少检查：
 
 ## 11. 当前开发基线
 
-- SRS：[docs/requirements/SRS.md](docs/requirements/SRS.md)
-- SDS：[docs/design/SDS.md](docs/design/SDS.md)
-- 追溯矩阵：[docs/design/srs-v0.2-traceability.md](docs/design/srs-v0.2-traceability.md)
-- 开发计划：[docs/development/plan.md](docs/development/plan.md)
-- 协作索引：[docs/development/README.md](docs/development/README.md)
-- 任务模板：[docs/development/TEMPLATE.md](docs/development/TEMPLATE.md)
+- SRS：[../requirements/SRS.md](../requirements/SRS.md)
+- SDS：[../design/SDS.md](../design/SDS.md)
+- 追溯矩阵：[../design/srs-v0.2-traceability.md](../design/srs-v0.2-traceability.md)
+- 开发状态：[open-questions.md](open-questions.md)
+- 开发计划：[plan.md](plan.md)
+- 协作索引：[README.md](README.md)
+- 任务模板：[TEMPLATE.md](TEMPLATE.md)
