@@ -75,8 +75,45 @@ curl http://127.0.0.1:8765/api/v1/health
 - 依赖版本以 `requirements.lock` 为唯一来源；安装失败时脚本返回非零退出码。
 - 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
 - 服务只监听 `127.0.0.1`，当前版本不开启局域网访问，也不自动打开浏览器。
-- 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。设置页仍为后续任务入口。
+- 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。`/settings` 可编辑模型根目录、DuRetrieval 目录与计算设备，并查看资源与环境状态；局域网开关由后续任务实现。
 - 历史页支持导入单份 JSON 到 `results/imports/`；运行记录的移动、删除和恢复后果见 [results/README.md](results/README.md)。
+
+## 设置、数据与模型准备
+
+设置保存在 `data/app/settings.json`，也可在 `/settings` 页面编辑。默认值为：模型根目录未配置、DuRetrieval 目录未配置、设备 `auto`、本机端口 8765、局域网端口 8766（局域网开关由后续任务实现）。
+
+| 资源 | 位置 | 说明 |
+| --- | --- | --- |
+| SciFact | `data/raw/scifact/` | 随仓库提供：`corpus.jsonl`、`queries.jsonl`、`qrels/test.tsv`；来源与许可见 [NOTICE.md](NOTICE.md) 与 [resources/scifact/SOURCE.md](resources/scifact/SOURCE.md) |
+| DuRetrieval | 设置中的 `duretrieval_root` | dev 划分，需要 `corpus.jsonl`、`queries.jsonl`、`qrels_dev.tsv`；不随包分发 |
+| Embedding 模型 | `<model_root>/<directory_name>/` | 4 个唯一模型，目录名与 revision 见下表 |
+
+模型目录约定（目录名必须与方案中的 `directory_name` 一致，且包含 `config.json`、权重文件与 tokenizer 文件）：
+
+```text
+<model_root>/
+  Qwen3-Embedding-0.6B/      # Qwen/Qwen3-Embedding-0.6B @ 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+  bge-m3/                    # BAAI/bge-m3 @ 5617a9f61b028005a4858fdac845db406aefb181
+  all-MiniLM-L6-v2/          # sentence-transformers/all-MiniLM-L6-v2 @ 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+  bge-small-zh-v1.5/         # BAAI/bge-small-zh-v1.5 @ 7999e1d3359715c523056ef9478215996d62a620
+```
+
+- 应用只从 `<model_root>/<目录名>` 读取本地模型文件并启用本地文件模式，**不会自动下载模型或数据**，也不会扫描磁盘自动寻找资源。
+- 缺少模型只禁用 Dense / Hybrid 变体；BM25 和预置结果仍可查看。
+- 显式选择不可用的 `cuda` / `mps` 时，依赖模型的变体标记为不可运行，不会静默回退到 CPU。
+- 设备实际生效值、依赖版本和各资源状态可在 `/settings` 查看。
+
+预置结果构建（离线，需要 SciFact 原始数据与来源/许可证文件）：
+
+```bash
+.venv/bin/python scripts/build_presets.py --check-assets-only
+.venv/bin/python scripts/build_presets.py --output results/presets
+# 输出目录已有预置记录时，显式替换：
+.venv/bin/python scripts/build_presets.py --force
+```
+
+- 构建会校验方案配置与旧评估 JSON 一致，按 SDS §8.5.3 映射 14 项 timing，并为每条记录生成指标/耗时图表。
+- 旧结果没有正式起止时间：结束时间取源文件 mtime（UTC），开始时间按可分解 timing 反推；这是归档时间推导，原文件不被修改。
 
 ## 实验结果概览
 
@@ -109,6 +146,9 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 - [开发任务模板](docs/development/TEMPLATE.md)
 - [检索实验与执行约定](docs/requirements/retrieval-lab.md)
 - [数据集调研记录](docs/datasets.md)
+- [第三方资源与许可 NOTICE](NOTICE.md)
+- [结果目录说明](results/README.md)
+- [SciFact 来源与许可](resources/scifact/SOURCE.md)
 
 ## 当前阶段说明
 

@@ -27,7 +27,7 @@ from tasks.models import (
     TaskSubmitError,
 )
 from web.context import AppContext, build_default_context
-from web.routes import imports, pages, plans, runs, tasks
+from web.routes import imports, pages, plans, runs, settings as settings_routes, tasks
 from web.routes import session as session_routes
 from web.security import (
     ApiError,
@@ -98,6 +98,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(runs.router)
     app.include_router(imports.router)
+    app.include_router(settings_routes.router)
     app.include_router(pages.router)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 

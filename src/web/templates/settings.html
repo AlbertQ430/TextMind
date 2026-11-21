@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+{% if error %}
+<section class="panel">
+  <div class="notice error">{{ error }}</div>
+  <p class="muted">设置文件损坏时不会被静默覆盖。请修复或删除 <span class="mono">data/app/settings.json</span> 后刷新；预置结果仍可读取。</p>
+</section>
+{% else %}
+<section class="panel">
+  <h2>资源与设备</h2>
+  <form id="settings-form" class="settings-form">
+    <label class="field">
+      <span>模型根目录</span>
+      <input type="text" id="model-root" name="model_root"
+             value="{{ settings.model_root or '' }}"
+             placeholder="/path/to/models" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>DuRetrieval 数据目录</span>
+      <input type="text" id="duretrieval-root" name="duretrieval_root"
+             value="{{ settings.duretrieval_root or '' }}"
+             placeholder="/path/to/duretrieval" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>计算设备</span>
+      <select id="device" name="device">
+        {% for value, label in [("auto", "自动"), ("cpu", "CPU"), ("cuda", "CUDA"), ("mps", "MPS")] %}
+        <option value="{{ value }}"{% if settings.device == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="primary" id="settings-save">保存设置</button>
+    <span class="muted">保存后新任务使用新设置，正在运行的任务不受影响。</span>
+  </form>
+  <div id="settings-result" class="notice" hidden></div>
+</section>
+
+<section class="panel">
+  <h2>数据集</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>数据集</th><th>状态</th><th>说明</th></tr></thead>
+      <tbody>
+        {% for dataset in resources.datasets %}
+        <tr>
+          <td class="mono">{{ dataset.id }}</td>
+          <td><span class="status {{ 'Completed' if dataset.state == 'available' else 'Failed' }}">{{ dataset.state }}</span></td>
+          <td>
+            {{ dataset.summary }}
+            {% if dataset.missing %}
+            <div class="mono muted">{{ dataset.missing | join(", ") }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">DuRetrieval 使用 dev 划分；应用不会自动下载或整理数据文件。</p>
+</section>
+
+<section class="panel">
+  <h2>模型</h2>
+  {% if resources.models %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>目录</th><th>模型</th><th>revision</th><th>状态</th><th>说明</th></tr></thead>
+      <tbody>
+        {% for model in resources.models %}
+        <tr>
+          <td class="mono">{{ model.id }}</td>
+          <td>{{ model.name }}</td>
+          <td class="mono">{{ model.revision or "—" }}</td>
+          <td><span class="status {{ 'Completed' if model.state == 'available' else 'Failed' }}">{{ model.state }}</span></td>
+          <td>
+            {{ model.summary }}
+            {% if model.missing %}
+            <div class="mono muted">{{ model.missing | join(", ") }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">当前方案没有需要本地模型的变体。</p>
+  {% endif %}
+  <p class="muted">模型只从 <span class="mono">&lt;模型根目录&gt;/&lt;目录名&gt;</span> 加载，应用不会按 Hub 名称联网下载。</p>
+</section>
+
+<section class="panel">
+  <h2>计算设备</h2>
+  <dl class="facts">
+    <dt>配置</dt><dd>{{ resources.device.configured }}</dd>
+    <dt>实际生效</dt><dd>{{ resources.device.effective }}</dd>
+    <dt>状态</dt><dd>{{ "可用" if resources.device.available else "不可用" }}</dd>
+  </dl>
+  <p class="muted">{{ resources.device.summary }}</p>
+</section>
+
+<section class="panel">
+  <h2>环境</h2>
+  <dl class="facts">
+    <dt>Python</dt><dd>{{ environment.python }}</dd>
+    <dt>平台</dt><dd>{{ environment.platform }}</dd>
+  </dl>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>依赖</th><th>版本</th></tr></thead>
+      <tbody>
+        {% for name, version in environment.dependencies.items() %}
+        <tr><td>{{ name }}</td><td class="mono">{{ version or "未安装" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>局域网</h2>
+  <p class="muted">局域网开关与访问码由后续任务实现，本页不提供伪造开关。端口配置：本机 {{ settings.network.local_port }}，局域网 {{ settings.network.lan_port }}。</p>
+</section>
+{% endif %}
+{% endblock %}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import sys
+import tempfile
 import threading
 import unittest
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ if str(SRC_DIR) not in sys.path:
 from fastapi.testclient import TestClient  # noqa: E402
 
 from experiment.plans import RunVariant, load_plan_catalog  # noqa: E402
+from resources.settings import SettingsStore  # noqa: E402
 from tasks.models import (  # noqa: E402
     TaskConflictError,
     TaskNotFoundError,
@@ -31,6 +33,7 @@ from web.routes import find_plan  # noqa: E402
 from web.session import SessionStore  # noqa: E402
 
 CATALOG = load_plan_catalog()
+SETTINGS_PATH = Path(tempfile.mkdtemp()) / "settings.json"
 
 
 class FakeTaskService:
@@ -113,6 +116,7 @@ def build_app(service: FakeTaskService):
         catalog=CATALOG,
         task_service=service,
         session_store=SessionStore(),
+        settings_store=SettingsStore(SETTINGS_PATH),
     )
     return create_app(context), context
 
@@ -200,6 +204,8 @@ class PageTests(unittest.TestCase):
         self.assertIn("暂无运行记录", history.text)
 
         settings = self.client.get("/settings")
+        self.assertEqual(settings.status_code, 200)
+        self.assertIn("资源与设备", settings.text)
         self.assertIn("后续任务", settings.text)
         self.assertNotIn("P@1", settings.text)
 

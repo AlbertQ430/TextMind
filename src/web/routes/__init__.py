@@ -31,13 +31,16 @@ def find_plan(catalog: PlanCatalog, plan_id: str) -> PlanDefinition | None:
     return None
 
 
-def plan_summary(plan: PlanDefinition) -> dict:
+def plan_summary(plan: PlanDefinition, checker=None) -> dict:
     run_variants = [
         variant for variant in plan.variants if isinstance(variant, RunVariant)
     ]
     references = [
         variant for variant in plan.variants if isinstance(variant, ReferenceVariant)
     ]
+    runnable_count = (
+        checker.plan_runnable_count(plan) if checker is not None else None
+    )
     return {
         "plan_id": plan.plan_id,
         "plan_version": plan.plan_version,
@@ -50,11 +53,12 @@ def plan_summary(plan: PlanDefinition) -> dict:
         },
         "variant_count": len(plan.variants),
         "run_variant_count": len(run_variants),
+        "runnable_variant_count": runnable_count,
         "reference_count": len(references),
     }
 
 
-def variant_summary(variant) -> dict:
+def variant_summary(variant, plan=None, checker=None) -> dict:
     if isinstance(variant, ReferenceVariant):
         return {
             "variant_id": variant.variant_id,
@@ -62,20 +66,32 @@ def variant_summary(variant) -> dict:
             "kind": "reference",
             "method": None,
             "runnable": False,
-            "resource_status": "参照结果，不可提交",
+            "resource_state": "not_applicable",
+            "resource_status": "参照结果，无需运行资源",
+            "resource_missing": [],
             "preset_run_id": None,
             "source_plan_id": variant.source_plan_id,
             "source_plan_version": variant.source_plan_version,
             "source_variant_id": variant.source_variant_id,
         }
 
+    if checker is not None and plan is not None:
+        status = checker.variant_state(plan, variant)
+    else:
+        status = {
+            "state": "unknown",
+            "summary": RESOURCE_PENDING,
+            "missing": [],
+        }
     data: dict = {
         "variant_id": variant.variant_id,
         "name": variant.name,
         "kind": "run",
         "method": variant.method,
-        "runnable": True,
-        "resource_status": RESOURCE_PENDING,
+        "runnable": status["state"] == "available",
+        "resource_state": status["state"],
+        "resource_status": status["summary"],
+        "resource_missing": list(status["missing"]),
         "preset_run_id": variant.preset_run_id,
         "preset_source": variant.preset_source,
     }
@@ -110,13 +126,15 @@ def variant_summary(variant) -> dict:
     return data
 
 
-def plan_detail(plan: PlanDefinition) -> dict:
-    detail = plan_summary(plan)
+def plan_detail(plan: PlanDefinition, checker=None) -> dict:
+    detail = plan_summary(plan, checker)
     detail["evaluation"] = {
         "top_k": plan.evaluation.top_k,
         "k_values": list(plan.evaluation.k_values),
     }
-    detail["variants"] = [variant_summary(variant) for variant in plan.variants]
+    detail["variants"] = [
+        variant_summary(variant, plan, checker) for variant in plan.variants
+    ]
     return detail
 
 

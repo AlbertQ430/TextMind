@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+{% if settings_error %}
+<div class="notice error">设置读取失败：{{ settings_error }}。资源状态暂不可用；预置结果仍可打开。</div>
+{% endif %}
 <p class="muted">{{ plan.description }}</p>
 
 <section class="panel">
@@ -16,7 +19,7 @@
 <section class="panel">
   <h2>变体</h2>
   <div class="table-wrap">
-    <table>
+    <table id="plan-variants">
       <thead>
         <tr>
           <th>变体</th>
@@ -53,7 +56,12 @@
             {% if variant.preset_run_id %}<span class="mono">{{ variant.preset_run_id }}</span>{% else %}—{% endif %}
             {% if variant.kind == "reference" %}<span class="tag">参照</span>{% endif %}
           </td>
-          <td>{{ variant.resource_status }}</td>
+          <td>
+            {{ variant.resource_status }}
+            {% if variant.resource_missing %}
+            <div class="mono muted">{{ variant.resource_missing | join(", ") }}</div>
+            {% endif %}
+          </td>
           <td>
             {% if variant.runnable %}
             <button class="primary"
@@ -61,7 +69,7 @@
                     data-run-version="{{ plan.plan_version }}"
                     data-run-variant="{{ variant.variant_id }}">运行</button>
             {% else %}
-            <button disabled title="参照结果不可提交">不可运行</button>
+            <button disabled title="{{ variant.resource_status }}">不可运行</button>
             {% endif %}
           </td>
         </tr>

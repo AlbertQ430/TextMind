@@ -5,8 +5,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from resources.checker import ResourceUnavailableError
+from resources.settings import SettingsInvalidError, SettingsReadError
 from tasks.models import TaskNotFoundError
 from web.routes import task_snapshot, task_summary
+from web.security import ApiError
 
 router = APIRouter(prefix="/api/v1/tasks")
 
@@ -20,9 +23,16 @@ class SubmitTaskRequest(BaseModel):
 @router.post("", status_code=201)
 def submit_task(payload: SubmitTaskRequest, request: Request) -> dict:
     service = request.app.state.context.task_service
-    run_id = service.submit(
-        payload.plan_id, payload.plan_version, payload.variant_id
-    )
+    try:
+        run_id = service.submit(
+            payload.plan_id, payload.plan_version, payload.variant_id
+        )
+    except ResourceUnavailableError as exc:
+        raise ApiError(
+            409, "RESOURCE_UNAVAILABLE", exc.message, exc.missing
+        ) from None
+    except (SettingsReadError, SettingsInvalidError) as exc:
+        raise ApiError(422, "SETTINGS_INVALID", str(exc)) from None
     return {"run_id": run_id, "task": task_summary(service.get(run_id))}
 
 

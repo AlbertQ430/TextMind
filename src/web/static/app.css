@@ -156,6 +156,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 .import-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.settings-form { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.settings-form .field { display: flex; flex-direction: column; gap: 4px; min-width: 240px; }
+.settings-form input[type="text"], .settings-form select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
 #import-result p { margin: 4px 0; }
 
 .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }

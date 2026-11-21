@@ -18,6 +18,7 @@ from experiment.plans import PlanCatalog, PlanDefinition, RunVariant
 from experiment.stages import StageEvent
 from paths import INSTANCE_LOCK_PATH
 from records.repository import ResultConflictError
+from resources.checker import ResourceUnavailableError
 from tasks.locking import InstanceLock
 from tasks.models import (
     NOTICE_QUEUE_CANCELLED_ON_RESTART,
@@ -97,6 +98,7 @@ class TaskService:
         publisher: TerminalPublisher,
         *,
         reconciler: Any | None = None,
+        resource_checker: Any | None = None,
         lock: InstanceLock | None = None,
         poll_interval: float = 0.05,
         join_timeout: float = 5.0,
@@ -107,6 +109,7 @@ class TaskService:
         self._executor = executor
         self._publisher = publisher
         self._reconciler = reconciler
+        self._resource_checker = resource_checker
         self._lock = lock
         self._poll_interval = poll_interval
         self._join_timeout = join_timeout
@@ -211,6 +214,8 @@ class TaskService:
             if not self._started or not self._accepting:
                 raise ServiceNotRunningError("任务服务未运行或已停止接单")
             plan, variant = self._resolve(plan_id, plan_version, variant_id)
+            if self._resource_checker is not None:
+                self._resource_checker.require_available(plan, variant)
             now = self._now()
             run_id = generate_run_id(now=now)
             record = build_task_record(

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="plan-grid">
+{% if settings_error %}
+<div class="notice error">设置读取失败：{{ settings_error }}。资源状态暂不可用；历史记录与预置结果仍可访问。</div>
+{% endif %}
+<section class="plan-grid" id="plans-grid">
   {% for plan in plans %}
   <a class="plan-card" href="/plans/{{ plan.plan_id }}">
     <h2>{{ plan.name }}</h2>
@@ -9,7 +12,7 @@
       <dt>数据集</dt><dd>{{ plan.dataset.name }}</dd>
       <dt>语言</dt><dd>{{ plan.dataset.language }}</dd>
       <dt>划分</dt><dd>{{ plan.dataset.split }}</dd>
-      <dt>变体</dt><dd>{{ plan.run_variant_count }} 个可运行 / {{ plan.variant_count }} 项</dd>
+      <dt>变体</dt><dd>{{ plan.runnable_variant_count if plan.runnable_variant_count is not none else "—" }} / {{ plan.run_variant_count }} 个可运行{% if plan.reference_count %} · {{ plan.reference_count }} 个参照{% endif %}</dd>
     </dl>
     <span class="card-link">查看方案详情 →</span>
   </a>

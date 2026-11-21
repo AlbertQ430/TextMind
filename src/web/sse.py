@@ -58,6 +58,13 @@ def _records_key(context: AppContext) -> str:
     return catalog.fingerprint()
 
 
+def _settings_key(context: AppContext) -> str:
+    store = getattr(context, "settings_store", None)
+    if store is None:
+        return ""
+    return store.fingerprint()
+
+
 def build_snapshot(context: AppContext) -> dict:
     payload = _task_payload(context)
     payload["generated_at"] = datetime.now(timezone.utc).isoformat()
@@ -74,6 +81,7 @@ async def event_stream(request: Request, context: AppContext):
     last_task_key = _task_key(initial)
     last_queue_key = _queue_key(initial)
     last_records_key = _records_key(context)
+    last_settings_key = _settings_key(context)
     loop = asyncio.get_event_loop()
     last_heartbeat = loop.time()
     poll_interval = max(context.sse_poll_interval, 0.01)
@@ -88,11 +96,13 @@ async def event_stream(request: Request, context: AppContext):
         task_key = _task_key(payload)
         queue_key = _queue_key(payload)
         records_key = _records_key(context)
+        settings_key = _settings_key(context)
         task_changed = task_key != last_task_key
         queue_changed = queue_key != last_queue_key
         records_changed = records_key != last_records_key
+        settings_changed = settings_key != last_settings_key
 
-        if not (task_changed or queue_changed or records_changed):
+        if not (task_changed or queue_changed or records_changed or settings_changed):
             if loop.time() - last_heartbeat >= heartbeat_interval:
                 yield heartbeat_event()
                 last_heartbeat = loop.time()
@@ -117,4 +127,15 @@ async def event_stream(request: Request, context: AppContext):
                 },
             )
             last_records_key = records_key
+        if settings_changed:
+            yield format_event(
+                "settings.changed",
+                {
+                    "changed": True,
+                    "generated_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                },
+            )
+            last_settings_key = settings_key
         last_heartbeat = loop.time()

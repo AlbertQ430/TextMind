@@ -12,6 +12,8 @@ from records.compare import (
     build_selection,
     compare,
 )
+from resources.checker import environment_summary
+from resources.settings import SettingsInvalidError, SettingsReadError
 from web.routes import (
     find_plan,
     plan_detail,
@@ -65,13 +67,22 @@ def root() -> RedirectResponse:
 
 @router.get("/plans")
 def plans_page(request: Request):
-    catalog = request.app.state.context.catalog
+    context = request.app.state.context
+    catalog = context.catalog
+    checker = getattr(context, "resource_checker", None)
+    error = None
+    try:
+        plans = [plan_summary(plan, checker) for plan in catalog.plans]
+    except (SettingsReadError, SettingsInvalidError) as exc:
+        plans = [plan_summary(plan, None) for plan in catalog.plans]
+        error = str(exc)
     return _render(
         request,
         "plans.html",
         title="实验中心",
         active="plans",
-        plans=[plan_summary(plan) for plan in catalog.plans],
+        plans=plans,
+        settings_error=error,
     )
 
 
@@ -89,12 +100,20 @@ def plan_page(plan_id: str, request: Request):
             back_label="返回实验中心",
             active="plans",
         )
+    checker = getattr(request.app.state.context, "resource_checker", None)
+    try:
+        detail = plan_detail(plan, checker)
+        error = None
+    except (SettingsReadError, SettingsInvalidError) as exc:
+        detail = plan_detail(plan, None)
+        error = str(exc)
     return _render(
         request,
         "plan_detail.html",
         title=plan.name,
         active="plans",
-        plan=plan_detail(plan),
+        plan=detail,
+        settings_error=error,
     )
 
 
@@ -206,9 +225,43 @@ def compare_page(request: Request, runs: str = ""):
 
 @router.get("/settings")
 def settings_page(request: Request):
-    return _placeholder(
+    context = request.app.state.context
+    store = getattr(context, "settings_store", None)
+    checker = getattr(context, "resource_checker", None)
+    error = None
+    settings = None
+    resources = None
+    environment = None
+    if store is None:
+        error = "设置存储不可用，请检查应用数据目录。"
+    else:
+        try:
+            settings = store.load().model_dump(mode="json")
+            if checker is not None:
+                resources = checker.snapshot()
+            else:
+                resources = {
+                    "datasets": [],
+                    "models": [],
+                    "device": {
+                        "configured": settings["device"],
+                        "effective": settings["device"],
+                        "available": True,
+                        "summary": "当前上下文未提供资源检查",
+                    },
+                }
+            environment = environment_summary()
+        except SettingsReadError as exc:
+            error = str(exc)
+        except SettingsInvalidError as exc:
+            error = str(exc)
+    return _render(
         request,
-        "设置",
-        "资源路径、环境检查和局域网开关将在后续任务实现。本页仅提供入口。",
+        "settings.html",
+        title="设置",
         active="settings",
+        settings=settings,
+        resources=resources,
+        environment=environment,
+        error=error,
     )

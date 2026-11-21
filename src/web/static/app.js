@@ -627,4 +627,116 @@
   if (document.getElementById("history-body")) {
     initHistory();
   }
+
+  // ---------------------------------------------------------------- 设置与资源状态
+  function initSettings() {
+    var form = document.getElementById("settings-form");
+    if (!form) {
+      return;
+    }
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var button = document.getElementById("settings-save");
+      var result = document.getElementById("settings-result");
+      var payload = {
+        model_root:
+          document.getElementById("model-root").value.trim() || null,
+        duretrieval_root:
+          document.getElementById("duretrieval-root").value.trim() || null,
+        device: document.getElementById("device").value,
+      };
+      if (button.dataset.busy) {
+        return;
+      }
+      button.dataset.busy = "1";
+      button.disabled = true;
+      try {
+        var response = await fetch("/api/v1/settings", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+          },
+          body: JSON.stringify(payload),
+          credentials: "same-origin",
+        });
+        var data = await response.json().catch(function () {
+          return {};
+        });
+        if (!response.ok) {
+          throw new Error(
+            data && data.error && data.error.message
+              ? data.error.message
+              : "保存设置失败"
+          );
+        }
+        if (result) {
+          clear(result);
+          result.hidden = false;
+          result.className = "notice ok";
+          var paragraph = document.createElement("p");
+          paragraph.textContent = "设置已保存，新任务将使用新设置。";
+          result.appendChild(paragraph);
+        }
+        window.location.reload();
+      } catch (error) {
+        showNotice(error.message, "error");
+      } finally {
+        button.disabled = false;
+        delete button.dataset.busy;
+      }
+    });
+  }
+
+  function startSettingsWatcher() {
+    if (!window.EventSource) {
+      return;
+    }
+    var failures = 0;
+    var polling = false;
+
+    function startPolling() {
+      if (polling) {
+        return;
+      }
+      polling = true;
+      window.setInterval(function () {
+        window.location.reload();
+      }, 5000);
+    }
+
+    function connect() {
+      var source = new window.EventSource("/api/v1/events");
+      var failed = false;
+      source.addEventListener("settings.changed", function () {
+        failures = 0;
+        window.location.reload();
+      });
+      source.onerror = function () {
+        if (failed) {
+          return;
+        }
+        failed = true;
+        source.close();
+        failures += 1;
+        if (failures > 3) {
+          startPolling();
+        } else {
+          window.setTimeout(connect, 2000);
+        }
+      };
+    }
+
+    connect();
+  }
+
+  if (document.getElementById("settings-form")) {
+    initSettings();
+    startSettingsWatcher();
+  } else if (
+    document.getElementById("plan-variants") ||
+    document.getElementById("plans-grid")
+  ) {
+    startSettingsWatcher();
+  }
 })();

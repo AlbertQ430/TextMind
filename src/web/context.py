@@ -12,6 +12,8 @@ from records.catalog import ResultCatalog
 from records.importer import ImportService
 from records.publisher import RunRecordPublisher
 from records.repository import ResultRepository
+from resources.checker import ResourceChecker
+from resources.settings import SettingsStore
 from tasks.repository import TaskRepository
 from tasks.service import TaskService
 from web.session import SessionStore
@@ -27,6 +29,8 @@ class AppContext:
     result_repository: ResultRepository | None = None
     result_catalog: Any | None = None
     import_service: Any | None = None
+    settings_store: Any | None = None
+    resource_checker: Any | None = None
     sse_poll_interval: float = 0.5
     sse_heartbeat_interval: float = 15.0
     started: bool = False
@@ -48,8 +52,10 @@ class AppContext:
 def build_default_context() -> AppContext:
     """默认装配：真实方案目录、任务服务、执行器与结果发布器。"""
     catalog = load_plan_catalog()
+    settings_store = SettingsStore()
+    resource_checker = ResourceChecker(catalog, settings_store.load)
     repository = TaskRepository()
-    executor = ExperimentExecutor()
+    executor = ExperimentExecutor(settings_provider=settings_store.load)
     publisher = RunRecordPublisher()
     service = TaskService(
         catalog,
@@ -57,6 +63,7 @@ def build_default_context() -> AppContext:
         executor,
         publisher,
         reconciler=publisher,
+        resource_checker=resource_checker,
     )
     record_catalog = ResultCatalog(catalog=catalog)
     return AppContext(
@@ -66,4 +73,6 @@ def build_default_context() -> AppContext:
         result_repository=publisher.repository,
         result_catalog=record_catalog,
         import_service=ImportService(catalog=record_catalog),
+        settings_store=settings_store,
+        resource_checker=resource_checker,
     )

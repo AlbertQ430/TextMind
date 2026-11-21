@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -21,6 +22,8 @@ from document.dataset import Document, Query, RetrievalDataset  # noqa: E402
 from experiment.executor import (  # noqa: E402
     ExperimentExecutor,
     RunCancelled,
+    default_dataset_loader,
+    default_model_loader,
 )
 from experiment.plans import (  # noqa: E402
     DatasetSpec,
@@ -32,6 +35,7 @@ from experiment.plans import (  # noqa: E402
 )
 from experiment.stages import STAGE_LABELS, STAGES, applicable_stages  # noqa: E402
 from experiment.timing import TIMING_FIELDS, hybrid_total_matches  # noqa: E402
+from resources.settings import Settings  # noqa: E402
 
 MODEL = ModelSpec(
     name="fake/model",
@@ -460,6 +464,52 @@ class ExecutorIntegrationTests(unittest.TestCase):
         self.assertAlmostEqual(result.metrics["P@1"], 0.5333, places=3)
         self.assertAlmostEqual(result.metrics["MRR"], 0.6312, places=3)
         self.assertEqual(result.stage_progress.not_applicable, ("load_model", "encode_queries"))
+
+
+class OfflineLoaderTests(unittest.TestCase):
+    def _duretrieval_plan(self):
+        catalog = load_plan_catalog()
+        return next(
+            plan
+            for plan in catalog.plans
+            if plan.plan_id == "duretrieval-comparison"
+        )
+
+    def test_default_dataset_loader_uses_duretrieval_setting(self) -> None:
+        plan = self._duretrieval_plan()
+        root = PROJECT_ROOT / "data" / "raw" / "duretrieval"
+        settings = Settings(duretrieval_root=str(root))
+        with mock.patch("experiment.executor.load_duretrieval") as loader:
+            loader.return_value = RetrievalDataset(
+                name="duretrieval", documents=[], queries=[], qrels={}
+            )
+            default_dataset_loader(plan, settings)
+        args, _ = loader.call_args
+        self.assertEqual(args[0], root / "corpus.jsonl")
+        self.assertEqual(args[1], root / "queries.jsonl")
+        self.assertEqual(args[2], root / "qrels_dev.tsv")
+
+    def test_duretrieval_requires_configured_root(self) -> None:
+        plan = self._duretrieval_plan()
+        with self.assertRaises(ValueError):
+            default_dataset_loader(plan, Settings())
+
+    def test_model_loader_requires_root(self) -> None:
+        with self.assertRaises(ValueError):
+            default_model_loader(MODEL, "cpu", None)
+
+    def test_model_loader_uses_local_directory(self) -> None:
+        with mock.patch("sentence_transformers.SentenceTransformer") as st:
+            default_model_loader(MODEL, "cpu", str(PROJECT_ROOT / "models"))
+        st.assert_called_once_with(
+            str(PROJECT_ROOT / "models" / "fake-model"),
+            device="cpu",
+            local_files_only=True,
+        )
+
+    def test_resolve_device_uses_settings(self) -> None:
+        executor = ExperimentExecutor()
+        self.assertEqual(executor._resolve_device(Settings(device="cpu")), "cpu")
 
 
 if __name__ == "__main__":

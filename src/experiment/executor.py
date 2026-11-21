@@ -31,6 +31,7 @@ from experiment.stages import (
 from experiment.timing import DurationRecorder
 from paths import DATA_DIR
 from records.schema import StageProgress
+from resources.settings import Settings
 from retrieval.bm25 import BM25Retriever, jieba_tokenize, simple_tokenize
 from retrieval.dense import DenseRetriever, Encoder
 from retrieval.hybrid import HybridRetriever
@@ -86,8 +87,10 @@ def _tokenizer(name: str) -> Callable[[str], Sequence[str]]:
     return jieba_tokenize if name == "jieba" else simple_tokenize
 
 
-def default_dataset_loader(plan: PlanDefinition) -> RetrievalDataset:
-    """按方案数据集名称加载本地数据集（默认路径）。"""
+def default_dataset_loader(
+    plan: PlanDefinition, settings: Settings | None = None
+) -> RetrievalDataset:
+    """按方案数据集名称加载本地数据集；不自动下载或创建文件。"""
     name = plan.dataset.name
     if name == "scifact":
         base = DATA_DIR / "raw" / "scifact"
@@ -98,7 +101,12 @@ def default_dataset_loader(plan: PlanDefinition) -> RetrievalDataset:
             name=name,
         )
     if name == "duretrieval":
-        base = DATA_DIR / "raw" / "duretrieval"
+        root = getattr(settings, "duretrieval_root", None)
+        if not root:
+            raise ValueError(
+                "未配置 DuRetrieval 数据目录，请在设置页填写后重试"
+            )
+        base = Path(root)
         return load_duretrieval(
             base / "corpus.jsonl",
             base / "queries.jsonl",
@@ -108,11 +116,18 @@ def default_dataset_loader(plan: PlanDefinition) -> RetrievalDataset:
     raise ValueError(f"未知数据集: {name}")
 
 
-def default_model_loader(model: ModelSpec, device: str) -> Encoder:
-    """使用 SentenceTransformer 加载模型；模型根目录由 T-009 统一配置。"""
+def default_model_loader(
+    model: ModelSpec, device: str, model_root: str | None = None
+) -> Encoder:
+    """只从 `<model_root>/<directory_name>` 本地目录加载模型。"""
+    if not model_root:
+        raise ValueError("未配置模型根目录，请在设置页填写后重试")
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer(model.name, device=device)
+    directory = Path(model_root) / model.directory_name
+    return SentenceTransformer(
+        str(directory), device=device, local_files_only=True
+    )
 
 
 class ExperimentExecutor:
@@ -126,10 +141,12 @@ class ExperimentExecutor:
         device_resolver: Callable[[], str] | None = None,
         cache_dir: Path | None = None,
         show_progress: bool = False,
+        settings_provider: Callable[[], Settings] | None = None,
     ) -> None:
-        self._model_loader = model_loader or default_model_loader
-        self._dataset_loader = dataset_loader or default_dataset_loader
-        self._device_resolver = device_resolver or resolve_device
+        self._model_loader = model_loader
+        self._dataset_loader = dataset_loader
+        self._device_resolver = device_resolver
+        self._settings_provider = settings_provider or Settings
         self._cache_dir = Path(cache_dir) if cache_dir else None
         self._show_progress = show_progress
 
@@ -168,12 +185,15 @@ class ExperimentExecutor:
 
         try:
             begin(STAGE_PREPARE)
-            device = None if method == "bm25" else self._device_resolver()
+            settings = self._settings_provider()
+            device = (
+                None if method == "bm25" else self._resolve_device(settings)
+            )
             end(STAGE_PREPARE)
 
             begin(STAGE_LOAD_DATASET)
             started = time.perf_counter()
-            dataset = self._dataset_loader(plan)
+            dataset = self._load_dataset(plan, settings)
             recorder.record(
                 "dataset_load_seconds", time.perf_counter() - started
             )
@@ -185,7 +205,9 @@ class ExperimentExecutor:
             else:
                 begin(STAGE_LOAD_MODEL)
                 started = time.perf_counter()
-                encoder = self._model_loader(variant.model, device)
+                encoder = self._load_model(
+                    variant.model, device, settings
+                )
                 recorder.record(
                     "model_load_seconds", time.perf_counter() - started
                 )
@@ -273,6 +295,25 @@ class ExperimentExecutor:
             raise RunCancelled(exc.stage, completed=tuple(completed)) from None
 
     # ------------------------------------------------------------------ 内部实现
+    def _resolve_device(self, settings: Settings) -> str:
+        if self._device_resolver is not None:
+            return self._device_resolver()
+        return resolve_device(settings.device)
+
+    def _load_dataset(
+        self, plan: PlanDefinition, settings: Settings
+    ) -> RetrievalDataset:
+        if self._dataset_loader is not None:
+            return self._dataset_loader(plan)
+        return default_dataset_loader(plan, settings)
+
+    def _load_model(
+        self, model: ModelSpec, device: str, settings: Settings
+    ) -> Encoder:
+        if self._model_loader is not None:
+            return self._model_loader(model, device)
+        return default_model_loader(model, device, settings.model_root)
+
     def _build(self, variant: RunVariant, encoder: Encoder | None) -> _Built:
         method = variant.method
         if method == "bm25":
