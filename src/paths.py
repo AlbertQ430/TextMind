@@ -11,6 +11,8 @@ PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 
 DATA_DIR: Path = PROJECT_ROOT / "data"
 APP_DATA_DIR: Path = DATA_DIR / "app"
+TASKS_DB_PATH: Path = APP_DATA_DIR / "textmind.db"
+INSTANCE_LOCK_PATH: Path = APP_DATA_DIR / "textmind.lock"
 
 CONFIG_DIR: Path = PROJECT_ROOT / "config"
 SCHEMAS_DIR: Path = PROJECT_ROOT / "schemas"
