@@ -42,6 +42,22 @@ def _python_version(executable: str) -> tuple[int, int] | None:
         return None
 
 
+def missing_python_hint(platform_name: str | None = None) -> str:
+    """找不到兼容解释器时，按当前平台给出可执行的安装命令。"""
+    name = platform_name or sys.platform
+    if name == "win32":
+        return (
+            "需要 Python 3.11 解释器来创建 .venv。可用以下任一方式指定：\n"
+            "  py -3.11 scripts\\install.py\n"
+            "  .venv\\Scripts\\python.exe scripts\\install.py --python <python3.11.exe 路径>"
+        )
+    return (
+        "需要 Python 3.11 解释器来创建 .venv。可用以下任一方式指定：\n"
+        "  TEXTMIND_PYTHON=/path/to/python3.11 python3 scripts/install.py\n"
+        "  python3 scripts/install.py --python /path/to/python3.11"
+    )
+
+
 def _find_python(explicit: str | None) -> tuple[str | None, str]:
     """按优先级选择用于创建 .venv 的兼容解释器。"""
     candidates: list[tuple[str, str]] = []
@@ -74,10 +90,44 @@ def _find_python(explicit: str | None) -> tuple[str | None, str]:
     return None, hint
 
 
-def _venv_python() -> Path:
-    if os.name == "nt":
+def venv_python(platform_name: str | None = None) -> Path:
+    """返回当前平台虚拟环境解释器路径（相对项目根目录）。"""
+    name = platform_name or sys.platform
+    if name == "win32":
         return VENV_DIR / "Scripts" / "python.exe"
     return VENV_DIR / "bin" / "python"
+
+
+def check_env_command(platform_name: str | None = None) -> str:
+    name = platform_name or sys.platform
+    if name == "win32":
+        return r".venv\Scripts\python.exe scripts\check_env.py"
+    return ".venv/bin/python scripts/check_env.py"
+
+
+def start_command(platform_name: str | None = None) -> str:
+    name = platform_name or sys.platform
+    if name == "win32":
+        return r".venv\Scripts\python.exe scripts\start.py"
+    return ".venv/bin/python scripts/start.py"
+
+
+def install_recovery_command(platform_name: str | None = None) -> str:
+    name = platform_name or sys.platform
+    if name == "win32":
+        return r".venv\Scripts\python.exe scripts\install.py"
+    return ".venv/bin/python scripts/install.py"
+
+
+def remove_venv_command(platform_name: str | None = None) -> str:
+    name = platform_name or sys.platform
+    if name == "win32":
+        return "rmdir /s /q .venv"
+    return "rm -rf .venv"
+
+
+def _venv_python() -> Path:
+    return venv_python()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -99,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"[错误] {VENV_DIR} 已存在，但其解释器不是 Python 3.11"
                 f"（检测结果：{existing or '无法执行'}）。\n"
-                "请先手动删除该目录后重试：rm -rf .venv",
+                f"请先手动删除该目录后重试：{remove_venv_command()}",
                 file=sys.stderr,
             )
             return 1
@@ -144,8 +194,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print("[完成] 依赖安装成功。后续命令：")
-    print("  .venv/bin/python scripts/check_env.py")
-    print("  .venv/bin/python scripts/start.py")
+    print(f"  {check_env_command()}")
+    print(f"  {start_command()}")
     return 0
 
 

@@ -56,27 +56,57 @@ TextMind 已完成一轮文本检索算法实验，相关实验代码与成果�
 
 需要 Python 3.11（本项目在 3.11.18 上验证）。依赖统一安装在项目根目录 `.venv`，不使用全局环境、不下载模型或数据集。
 
+### macOS
+
 ```bash
 # 1. 创建 .venv 并从 requirements.lock 安装锁定依赖
 #    当前 python3 不是 3.11 时，用 --python 或 TEXTMIND_PYTHON 指定 3.11 解释器
 python3 scripts/install.py --python /path/to/python3.11
-# TEXTMIND_PYTHON=/path/to/python3.11 python3 scripts/install.py
 
 # 2. 检查 Python 3.11 与核心依赖
 .venv/bin/python scripts/check_env.py
 
 # 3. 启动本地服务（默认 http://127.0.0.1:8765，仅监听回环地址）
 .venv/bin/python scripts/start.py
-
-# 4. 健康检查
-curl http://127.0.0.1:8765/api/v1/health
+# 或双击 start.command
 ```
 
+### Windows
+
+```bat
+:: 1. 创建 .venv 并安装锁定依赖
+py -3.11 scripts\install.py
+
+:: 2. 检查 Python 3.11 与核心依赖
+.venv\Scripts\python.exe scripts\check_env.py
+
+:: 3. 启动本地服务
+.venv\Scripts\python.exe scripts\start.py
+:: 或双击 start.bat
+```
+
+- 双击入口 `start.command`（macOS）与 `start.bat`（Windows）从自身所在目录定位项目根目录，不依赖当前工作目录；缺少 `.venv` 时以非零退出码结束并提示运行 `scripts/install.py`，不自动创建虚拟环境或安装依赖。
 - 依赖版本以 `requirements.lock` 为唯一来源；安装失败时脚本返回非零退出码。
 - 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
 - 默认只监听 `127.0.0.1`；可在设置页按需开启局域网访问（见下文），启动脚本会按设置自动恢复；不自动打开浏览器。
 - 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。`/settings` 可编辑模型根目录、DuRetrieval 目录与计算设备，并查看资源与环境状态；也可在设置页开启局域网访问。
 - 历史页支持导入单份 JSON 到 `results/imports/`；运行记录的移动、删除和恢复后果见 [results/README.md](results/README.md)。
+
+### 浏览器支持
+
+发布基线固定为：**Safari 17、Edge 120**，覆盖主要页面、上传和 SSE。Chrome 与 Firefox 已由用户从支持范围取消；低版本或其他浏览器不在承诺范围内。人工验收必须记录实际浏览器名称和版本。
+
+### 发布包
+
+```bash
+.venv/bin/python scripts/package_release.py --check
+.venv/bin/python scripts/package_release.py --output dist/textmind-0.1.0.zip
+```
+
+- `--check` 只读校验必需文件、SciFact 来源/署名/许可证、评估源文件和预置构建依赖；缺失时返回非零并输出具体路径。
+- `--output` 调用同一检查；ZIP 顶层目录固定为 `textmind-0.1.0/`，包含源码、脚本、配置、Schema、SciFact 原始数据、评估 JSON、发布资产、`docs/`、17 条预置结果及图表、`MANIFEST.txt`（按 POSIX 路径排序的 SHA-256 清单）。
+- 不包含 `.git/`、`.venv/`、`data/app/`、`logs/`、`results/runs/`、`results/imports/`、`dist/`、`__pycache__/`、`*.pyc` 和 `.DS_Store`；预置结果只在打包暂存目录构建，不提交到 Git。
+- 构建成功会打印 ZIP 的 SHA-256；相同输入会产生相同的归档条目顺序。
 
 ## 设置、数据与模型准备
 
@@ -161,4 +191,4 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 
 ## 当前阶段说明
 
-实验算法与数据分析阶段已形成可复用成果。SRS v0.2 已于 2026-11-21 冻结，SDS v0.1 已于 2026-11-21 通过设计评审；本文和需求文档描述的是目标要求，不代表软件功能已经实现。技术选型、模块边界、任务与结果机制见 SDS，剩余版本锁定和实现验证项见待处理事项。
+核心功能已实现（T-001 至 T-010 已完成并通过验收），当前处于发布验收阶段，发布状态以 [T-011 实现交接](docs/development/T-011.md) 为准。SRS v0.2 已于 2026-11-21 冻结，SDS v0.1 已于 2026-11-21 通过设计评审；Safari 26.6 与 Edge 158 人工验收已完成，Chrome/Firefox 已取消，仅 Windows 实机验证待补充。

@@ -10,6 +10,8 @@ from __future__ import annotations
 import sys
 from importlib import metadata
 
+from install import install_recovery_command
+
 REQUIRED_PYTHON = (3, 11)
 
 # (发行包名, 用途说明)；顺序与 requirements.lock 的核心依赖一致。
@@ -60,7 +62,11 @@ def run_checks(verbose: bool = True) -> bool:
 def main() -> int:
     passed = run_checks(verbose=True)
     if not passed:
-        print("\n[错误] 环境检查未通过：请先运行 .venv/bin/python scripts/install.py", file=sys.stderr)
+        print(
+            "\n[错误] 环境检查未通过：请先运行 "
+            f"{install_recovery_command()}",
+            file=sys.stderr,
+        )
         return 1
     print("\n[完成] 环境检查通过。")
     return 0

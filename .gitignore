@@ -22,3 +22,9 @@ data/raw/duretrieval/
 
 # 导出材料（课程报告 Word / PPT，不入库）
 docs/export/
+
+# 发布包构建输出（不入库）
+dist/
+
+# 计算机使用工具运行时截图（不入库）
+.dsh-computer-use/

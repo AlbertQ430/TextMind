@@ -25,6 +25,7 @@ for extra_path in (SRC_DIR, SCRIPTS_DIR):
 
 import check_env  # noqa: E402  (依赖上面的 sys.path 调整)
 from paths import ensure_app_dirs  # noqa: E402
+from tasks.locking import InstanceLockError  # noqa: E402
 
 from web.app import DEFAULT_PORT, LOCAL_HOST, APP_VERSION, create_app  # noqa: E402
 
@@ -111,7 +112,15 @@ def main(argv: list[str] | None = None) -> int:
         local_port=args.port,
     )
     # 先启动共享 AppContext/TaskService，再恢复 LAN listener。
-    context.start()
+    try:
+        context.start()
+    except InstanceLockError:
+        print(
+            "[错误] 已有 TextMind 实例正在使用当前数据目录，请关闭后重试。",
+            file=sys.stderr,
+        )
+        controller.shutdown()
+        return 1
     try:
         _restore_lan(context, controller)
         app = create_app(context, mode="local", network=controller)
