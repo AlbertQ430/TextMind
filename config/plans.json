@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "plans": [
+    {
+      "plan_id": "scifact-comparison",
+      "plan_version": "v1",
+      "name": "SciFact 英文检索方法与模型对比",
+      "description": "在 SciFact test 划分上对比 BM25、Dense 和 Hybrid 检索方法，并考察 Embedding 模型与查询前缀的影响。",
+      "dataset": {
+        "name": "scifact",
+        "language": "en",
+        "split": "test"
+      },
+      "evaluation": {
+        "top_k": 100,
+        "k_values": [1, 5, 10, 100]
+      },
+      "variants": [
+        {
+          "variant_id": "scifact-bm25",
+          "name": "BM25",
+          "kind": "run",
+          "method": "bm25",
+          "preset_run_id": "preset-scifact-bm25",
+          "preset_source": "data/evaluation/scifact_bm25_20261120_002601.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "simple"
+        },
+        {
+          "variant_id": "scifact-dense-qwen3-base",
+          "name": "Qwen3 Dense 无前缀",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-scifact-dense-qwen3-base",
+          "preset_source": "data/evaluation/scifact_dense_20261120_131030.json",
+          "model": {
+            "name": "Qwen/Qwen3-Embedding-0.6B",
+            "directory_name": "Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          "query_prefix": "",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "scifact-dense-qwen3-instruct",
+          "name": "Qwen3 Dense 官方 Instruct",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-scifact-dense-qwen3-instruct",
+          "preset_source": "data/evaluation/scifact_dense_prefix_eec03840_20261120_131037.json",
+          "model": {
+            "name": "Qwen/Qwen3-Embedding-0.6B",
+            "directory_name": "Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "scifact-dense-bge-m3-base",
+          "name": "BGE-M3 Dense 无前缀",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-scifact-dense-bge-m3-base",
+          "preset_source": "data/evaluation/scifact_dense_20261120_131044.json",
+          "model": {
+            "name": "BAAI/bge-m3",
+            "directory_name": "bge-m3",
+            "revision": "5617a9f61b028005a4858fdac845db406aefb181"
+          },
+          "query_prefix": "",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "scifact-dense-bge-m3-prefix",
+          "name": "BGE-M3 Dense 自定义前缀",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-scifact-dense-bge-m3-prefix",
+          "preset_source": "data/evaluation/scifact_dense_prefix_9c844c72_20261120_131052.json",
+          "model": {
+            "name": "BAAI/bge-m3",
+            "directory_name": "bge-m3",
+            "revision": "5617a9f61b028005a4858fdac845db406aefb181"
+          },
+          "query_prefix": "Represent this sentence for searching relevant passages: ",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "scifact-dense-minilm",
+          "name": "all-MiniLM Dense",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-scifact-dense-minilm",
+          "preset_source": "data/evaluation/scifact_dense_20261120_131056.json",
+          "model": {
+            "name": "sentence-transformers/all-MiniLM-L6-v2",
+            "directory_name": "all-MiniLM-L6-v2",
+            "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+          },
+          "query_prefix": "",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "scifact-hybrid-qwen3-base",
+          "name": "Qwen3 Hybrid 无前缀等权",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-scifact-hybrid-qwen3-base",
+          "preset_source": "data/evaluation/scifact_hybrid_20261120_132149.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "simple",
+          "model": {
+            "name": "Qwen/Qwen3-Embedding-0.6B",
+            "directory_name": "Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          "query_prefix": "",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [1.0, 1.0]
+        },
+        {
+          "variant_id": "scifact-hybrid-qwen3-instruct",
+          "name": "Qwen3 Hybrid Instruct 等权",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-scifact-hybrid-qwen3-instruct",
+          "preset_source": "data/evaluation/scifact_hybrid_prefix_eec03840_20261120_132157.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "simple",
+          "model": {
+            "name": "Qwen/Qwen3-Embedding-0.6B",
+            "directory_name": "Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [1.0, 1.0]
+        },
+        {
+          "variant_id": "scifact-hybrid-qwen3-instruct-w0.5",
+          "name": "Qwen3 Hybrid Instruct 加权（0.5, 1）",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-scifact-hybrid-qwen3-instruct-w0.5",
+          "preset_source": "data/evaluation/scifact_hybrid_prefix_eec03840_w0.5_1_20261120_213538.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "simple",
+          "model": {
+            "name": "Qwen/Qwen3-Embedding-0.6B",
+            "directory_name": "Qwen3-Embedding-0.6B",
+            "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+          },
+          "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [0.5, 1.0]
+        }
+      ]
+    },
+    {
+      "plan_id": "duretrieval-comparison",
+      "plan_version": "v1",
+      "name": "DuRetrieval 中文检索方法对比",
+      "description": "在 DuRetrieval dev 划分上对比 BM25、Dense 和 Hybrid 检索方法。",
+      "dataset": {
+        "name": "duretrieval",
+        "language": "zh",
+        "split": "dev"
+      },
+      "evaluation": {
+        "top_k": 100,
+        "k_values": [1, 5, 10, 100]
+      },
+      "variants": [
+        {
+          "variant_id": "duretrieval-bm25",
+          "name": "BM25（jieba）",
+          "kind": "run",
+          "method": "bm25",
+          "preset_run_id": "preset-duretrieval-bm25",
+          "preset_source": "data/evaluation/duretrieval_bm25_20261120_134645.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba"
+        },
+        {
+          "variant_id": "duretrieval-dense-bge-small-base",
+          "name": "bge-small Dense 无前缀",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-duretrieval-dense-bge-small-base",
+          "preset_source": "data/evaluation/duretrieval_dense_20261120_224242.json",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "duretrieval-dense-bge-small-prefix",
+          "name": "bge-small Dense 检索前缀",
+          "kind": "run",
+          "method": "dense",
+          "preset_run_id": "preset-duretrieval-dense-bge-small-prefix",
+          "preset_source": "data/evaluation/duretrieval_dense_prefix_802902f6_20261120_135655.json",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true
+        },
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-equal",
+          "name": "bge-small Hybrid 等权",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-duretrieval-hybrid-bge-small-prefix-equal",
+          "preset_source": "data/evaluation/duretrieval_hybrid_prefix_802902f6_20261120_140609.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [1.0, 1.0]
+        }
+      ]
+    },
+    {
+      "plan_id": "duretrieval-rrf-weight-sweep",
+      "plan_version": "v1",
+      "name": "DuRetrieval 加权 RRF 参数探索",
+      "description": "在 DuRetrieval dev 划分上探索 Hybrid 检索中 BM25 与 Dense 的 RRF 权重组合；等权结果仅作参照，不生成独立运行记录。",
+      "dataset": {
+        "name": "duretrieval",
+        "language": "zh",
+        "split": "dev"
+      },
+      "evaluation": {
+        "top_k": 100,
+        "k_values": [1, 5, 10, 100]
+      },
+      "variants": [
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-w0.5",
+          "name": "bge-small Hybrid 加权（0.5, 1）",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-duretrieval-hybrid-bge-small-prefix-w0.5",
+          "preset_source": "data/evaluation/duretrieval_hybrid_prefix_802902f6_w0.5_1_20261120_213046.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [0.5, 1.0]
+        },
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-w0.3",
+          "name": "bge-small Hybrid 加权（0.3, 1）",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-duretrieval-hybrid-bge-small-prefix-w0.3",
+          "preset_source": "data/evaluation/duretrieval_hybrid_prefix_802902f6_w0.3_1_20261120_213215.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [0.3, 1.0]
+        },
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-w0.2",
+          "name": "bge-small Hybrid 加权（0.2, 1）",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-duretrieval-hybrid-bge-small-prefix-w0.2",
+          "preset_source": "data/evaluation/duretrieval_hybrid_prefix_802902f6_w0.2_1_20261120_213359.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [0.2, 1.0]
+        },
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-w0.1",
+          "name": "bge-small Hybrid 加权（0.1, 1）",
+          "kind": "run",
+          "method": "hybrid",
+          "preset_run_id": "preset-duretrieval-hybrid-bge-small-prefix-w0.1",
+          "preset_source": "data/evaluation/duretrieval_hybrid_prefix_802902f6_w0.1_1_20261120_213527.json",
+          "k1": 1.2,
+          "b": 0.75,
+          "tokenizer": "jieba",
+          "model": {
+            "name": "BAAI/bge-small-zh-v1.5",
+            "directory_name": "bge-small-zh-v1.5",
+            "revision": "7999e1d3359715c523056ef9478215996d62a620"
+          },
+          "query_prefix": "为这个句子生成表示以用于检索相关文章：",
+          "batch_size": 32,
+          "normalize_embeddings": true,
+          "rrf_k": 60,
+          "rrf_weights": [0.1, 1.0]
+        },
+        {
+          "variant_id": "duretrieval-hybrid-bge-small-prefix-equal",
+          "name": "bge-small Hybrid 等权（参照）",
+          "kind": "reference",
+          "source_plan_id": "duretrieval-comparison",
+          "source_plan_version": "v1",
+          "source_variant_id": "duretrieval-hybrid-bge-small-prefix-equal"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://textmind.local/schemas/run_record.schema.json",
+  "title": "TextMind 运行记录",
+  "description": "单变体运行记录的格式版本 1.0。结果来源由所在目录决定，记录内不保存来源或导入时间。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "run_id",
+    "plan_id",
+    "plan_version",
+    "variant_id",
+    "plan_name",
+    "variant_name",
+    "status",
+    "stage_progress",
+    "started_at",
+    "finished_at",
+    "dataset",
+    "variant_config",
+    "timing",
+    "environment",
+    "charts"
+  ],
+  "properties": {
+    "format_version": {"const": "1.0"},
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "plan_id": {"type": "string", "minLength": 1},
+    "plan_version": {"type": "string", "minLength": 1},
+    "variant_id": {"type": "string", "minLength": 1},
+    "plan_name": {"type": "string", "minLength": 1},
+    "variant_name": {"type": "string", "minLength": 1},
+    "status": {
+      "enum": ["Completed", "Failed", "Cancelled", "Interrupted"]
+    },
+    "stage_progress": {"$ref": "#/$defs/stageProgress"},
+    "started_at": {"$ref": "#/$defs/dateTime"},
+    "finished_at": {"$ref": "#/$defs/dateTime"},
+    "cancelled_at": {
+      "oneOf": [
+        {"$ref": "#/$defs/dateTime"},
+        {"type": "null"}
+      ]
+    },
+    "dataset": {"$ref": "#/$defs/dataset"},
+    "variant_config": {"type": "object"},
+    "metrics": {
+      "type": ["object", "null"],
+      "additionalProperties": {"type": "number"}
+    },
+    "num_queries": {"type": ["integer", "null"], "minimum": 0},
+    "num_skipped": {"type": ["integer", "null"], "minimum": 0},
+    "timing": {"$ref": "#/$defs/timing"},
+    "environment": {"type": "object"},
+    "charts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/chart"}
+    },
+    "error": {
+      "oneOf": [
+        {"$ref": "#/$defs/error"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "Completed"}},
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["metrics", "num_queries", "num_skipped", "error"],
+        "properties": {
+          "metrics": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "num_queries": {"type": "integer"},
+          "num_skipped": {"type": "integer"},
+          "error": {"type": "null"}
+        }
+      },
+      "else": {
+        "required": ["error"],
+        "properties": {"error": {"$ref": "#/$defs/error"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "Cancelled"}},
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["cancelled_at"],
+        "properties": {
+          "cancelled_at": {"$ref": "#/$defs/dateTime"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "stageProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completed", "current", "not_applicable"],
+      "properties": {
+        "completed": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "current": {"type": ["string", "null"]},
+        "not_applicable": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "split", "corpus_size", "query_count", "qrels_pairs"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "split": {"type": "string", "minLength": 1},
+        "corpus_size": {"type": ["integer", "null"], "minimum": 0},
+        "query_count": {"type": ["integer", "null"], "minimum": 0},
+        "qrels_pairs": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_load_seconds",
+        "model_load_seconds",
+        "index_build_seconds",
+        "doc_cache_load_seconds",
+        "corpus_encode_seconds",
+        "query_cache_load_seconds",
+        "query_encode_seconds",
+        "bm25_search_total_seconds",
+        "dense_search_total_seconds",
+        "rrf_fusion_seconds",
+        "retrieval_total_seconds",
+        "retrieval_mean_seconds",
+        "retrieval_median_seconds",
+        "evaluation_seconds"
+      ],
+      "properties": {
+        "dataset_load_seconds": {"type": ["number", "null"], "minimum": 0},
+        "model_load_seconds": {"type": ["number", "null"], "minimum": 0},
+        "index_build_seconds": {"type": ["number", "null"], "minimum": 0},
+        "doc_cache_load_seconds": {"type": ["number", "null"], "minimum": 0},
+        "corpus_encode_seconds": {"type": ["number", "null"], "minimum": 0},
+        "query_cache_load_seconds": {"type": ["number", "null"], "minimum": 0},
+        "query_encode_seconds": {"type": ["number", "null"], "minimum": 0},
+        "bm25_search_total_seconds": {"type": ["number", "null"], "minimum": 0},
+        "dense_search_total_seconds": {"type": ["number", "null"], "minimum": 0},
+        "rrf_fusion_seconds": {"type": ["number", "null"], "minimum": 0},
+        "retrieval_total_seconds": {"type": ["number", "null"], "minimum": 0},
+        "retrieval_mean_seconds": {"type": ["number", "null"], "minimum": 0},
+        "retrieval_median_seconds": {"type": ["number", "null"], "minimum": 0},
+        "evaluation_seconds": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "path"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "anyOf": [
+              {"pattern": "^/"},
+              {"pattern": "\\\\"},
+              {"pattern": "(^|/)\\.\\.(/|$)"},
+              {"pattern": "(^|/)\\.(/|$)"},
+              {"pattern": "//"},
+              {"pattern": "/$"},
+              {"pattern": "^[A-Za-z]:"},
+              {"pattern": "^\\s*$"}
+            ]
+          }
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": {
+        "message": {"type": "string", "minLength": 1},
+        "detail": {"type": ["string", "null"]},
+        "stage": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

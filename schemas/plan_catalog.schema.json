@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://textmind.local/schemas/plan_catalog.schema.json",
+  "title": "TextMind 方案目录",
+  "description": "冻结的 3 个预设实验方案、v1 版本和 17 个唯一变体。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plans"],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "plans": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/plan"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "language", "split"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1},
+        "split": {"type": "string", "minLength": 1}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["top_k", "k_values"],
+      "properties": {
+        "top_k": {"type": "integer", "minimum": 1},
+        "k_values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "directory_name", "revision"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "directory_name": {"type": "string", "minLength": 1},
+        "revision": {
+          "type": ["string", "null"],
+          "minLength": 1
+        }
+      }
+    },
+    "presetRunId": {
+      "type": "string",
+      "pattern": "^preset-[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "presetSource": {
+      "type": "string",
+      "pattern": "^data/evaluation/[^/]+\\.json$"
+    },
+    "runBm25": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id", "name", "kind", "method",
+        "preset_run_id", "preset_source", "k1", "b", "tokenizer"
+      ],
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"const": "run"},
+        "method": {"const": "bm25"},
+        "preset_run_id": {"$ref": "#/$defs/presetRunId"},
+        "preset_source": {"$ref": "#/$defs/presetSource"},
+        "k1": {"type": "number", "minimum": 0},
+        "b": {"type": "number", "minimum": 0, "maximum": 1},
+        "tokenizer": {"enum": ["simple", "jieba"]}
+      }
+    },
+    "runDense": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id", "name", "kind", "method",
+        "preset_run_id", "preset_source", "model", "query_prefix",
+        "batch_size", "normalize_embeddings"
+      ],
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"const": "run"},
+        "method": {"const": "dense"},
+        "preset_run_id": {"$ref": "#/$defs/presetRunId"},
+        "preset_source": {"$ref": "#/$defs/presetSource"},
+        "model": {"$ref": "#/$defs/model"},
+        "query_prefix": {"type": "string"},
+        "batch_size": {"type": "integer", "minimum": 1},
+        "normalize_embeddings": {"type": "boolean"}
+      }
+    },
+    "runHybrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id", "name", "kind", "method",
+        "preset_run_id", "preset_source",
+        "k1", "b", "tokenizer",
+        "model", "query_prefix", "batch_size", "normalize_embeddings",
+        "rrf_k", "rrf_weights"
+      ],
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"const": "run"},
+        "method": {"const": "hybrid"},
+        "preset_run_id": {"$ref": "#/$defs/presetRunId"},
+        "preset_source": {"$ref": "#/$defs/presetSource"},
+        "k1": {"type": "number", "minimum": 0},
+        "b": {"type": "number", "minimum": 0, "maximum": 1},
+        "tokenizer": {"enum": ["simple", "jieba"]},
+        "model": {"$ref": "#/$defs/model"},
+        "query_prefix": {"type": "string"},
+        "batch_size": {"type": "integer", "minimum": 1},
+        "normalize_embeddings": {"type": "boolean"},
+        "rrf_k": {"type": "integer", "minimum": 1},
+        "rrf_weights": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "number", "minimum": 0},
+          "not": {"const": [0, 0]}
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id", "name", "kind",
+        "source_plan_id", "source_plan_version", "source_variant_id"
+      ],
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"const": "reference"},
+        "source_plan_id": {"type": "string", "minLength": 1},
+        "source_plan_version": {"type": "string", "minLength": 1},
+        "source_variant_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "variant": {
+      "oneOf": [
+        {"$ref": "#/$defs/runBm25"},
+        {"$ref": "#/$defs/runDense"},
+        {"$ref": "#/$defs/runHybrid"},
+        {"$ref": "#/$defs/reference"}
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id", "plan_version", "name", "description",
+        "dataset", "evaluation", "variants"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "plan_version": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "dataset": {"$ref": "#/$defs/dataset"},
+        "evaluation": {"$ref": "#/$defs/evaluation"},
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/variant"}
+        }
+      }
+    }
+  }
+}
