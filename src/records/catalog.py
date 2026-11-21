@@ -124,7 +124,7 @@ def _is_readable(path: Path) -> bool:
     try:
         with path.open("rb") as handle:
             handle.read(1)
-    except OSError:
+    except (OSError, ValueError):
         return False
     return True
 
@@ -371,17 +371,23 @@ class ResultCatalog:
         if index < 0 or index >= len(charts):
             raise ChartNotFound(f"图表索引不存在: {index}")
         raw = charts[index].path
-        relative = Path(raw)
-        if relative.is_absolute():
-            raise ChartUnsafe("图表路径必须是记录目录内的相对路径")
-        directory = entry.directory.resolve()
-        target = (directory / relative).resolve()
+        try:
+            relative = Path(raw)
+            if relative.is_absolute():
+                raise ChartUnsafe("图表路径必须是记录目录内的相对路径")
+            directory = entry.directory.resolve()
+            target = (directory / relative).resolve()
+        except (ValueError, OSError):
+            raise ChartUnsafe("图表路径无法解析") from None
         if directory not in target.parents:
             raise ChartUnsafe("图表路径越出运行目录")
-        if not target.is_file():
-            raise ChartUnavailable("图表文件缺失或不可读")
-        if not _is_readable(target):
-            raise ChartUnavailable("图表文件不可读")
+        try:
+            if not target.is_file():
+                raise ChartUnavailable("图表文件缺失或不可读")
+            if not _is_readable(target):
+                raise ChartUnavailable("图表文件不可读")
+        except (ValueError, OSError):
+            raise ChartUnavailable("图表文件不可读") from None
         return target
 
     def chart_available(self, entry: RecordEntry, index: int) -> bool:

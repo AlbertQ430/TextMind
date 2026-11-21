@@ -500,6 +500,74 @@
       });
     }
 
+    var importForm = document.getElementById("import-form");
+    if (importForm) {
+      importForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var fileInput = document.getElementById("import-file");
+        var button = document.getElementById("import-button");
+        var result = document.getElementById("import-result");
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+          showNotice("请选择要导入的 JSON 文件", "error");
+          return;
+        }
+        if (button.dataset.busy) {
+          return;
+        }
+        button.dataset.busy = "1";
+        button.disabled = true;
+        try {
+          var formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+          var response = await fetch("/api/v1/imports", {
+            method: "POST",
+            headers: { "X-CSRF-Token": csrfToken },
+            body: formData,
+            credentials: "same-origin",
+          });
+          var data = await response.json().catch(function () {
+            return {};
+          });
+          if (!response.ok) {
+            throw new Error(
+              data && data.error && data.error.message
+                ? data.error.message
+                : "导入失败，请检查文件后重试"
+            );
+          }
+          if (result) {
+            clear(result);
+            result.hidden = false;
+            result.className = "notice ok";
+            var lines = [
+              "导入成功：Run ID " + data.run_id,
+              "已写入 " +
+                data.bytes_written +
+                " 字节；缺失图表 " +
+                (data.missing_charts || []).length +
+                " 个。"
+            ].concat(
+              (data.warnings || []).map(function (item) {
+                return "提示：" + item;
+              })
+            );
+            lines.forEach(function (line) {
+              var paragraph = document.createElement("p");
+              paragraph.textContent = line;
+              result.appendChild(paragraph);
+            });
+          }
+          fileInput.value = "";
+          reload();
+        } catch (error) {
+          showNotice(error.message, "error");
+        } finally {
+          button.disabled = false;
+          delete button.dataset.busy;
+        }
+      });
+    }
+
     function reload() {
       fetch("/api/v1/runs", { credentials: "same-origin" })
         .then(function (response) {

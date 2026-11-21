@@ -9,6 +9,7 @@ from experiment.executor import ExperimentExecutor
 from experiment.plans import PlanCatalog, load_plan_catalog
 from paths import ensure_app_dirs
 from records.catalog import ResultCatalog
+from records.importer import ImportService
 from records.publisher import RunRecordPublisher
 from records.repository import ResultRepository
 from tasks.repository import TaskRepository
@@ -25,6 +26,7 @@ class AppContext:
     session_store: SessionStore
     result_repository: ResultRepository | None = None
     result_catalog: Any | None = None
+    import_service: Any | None = None
     sse_poll_interval: float = 0.5
     sse_heartbeat_interval: float = 15.0
     started: bool = False
@@ -56,10 +58,12 @@ def build_default_context() -> AppContext:
         publisher,
         reconciler=publisher,
     )
+    record_catalog = ResultCatalog(catalog=catalog)
     return AppContext(
         catalog=catalog,
         task_service=service,
         session_store=SessionStore(),
         result_repository=publisher.repository,
-        result_catalog=ResultCatalog(catalog=catalog),
+        result_catalog=record_catalog,
+        import_service=ImportService(catalog=record_catalog),
     )

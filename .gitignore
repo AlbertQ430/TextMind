@@ -13,7 +13,9 @@ data/processed/
 # 忽略应用运行目录与日志（本地生成，不进入版本库）
 data/app/
 logs/
-results/
+# results/ 只保留文件管理说明，运行记录不进入版本库
+results/*
+!results/README.md
 
 # 忽略 DuRetrieval 数据目录：按约定不纳入版本库，可由 docs/datasets.md 记录的 commit 重新下载
 data/raw/duretrieval/

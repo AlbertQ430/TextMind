@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="panel">
+  <h2>导入单个 JSON</h2>
+  <form id="import-form" class="import-form">
+    <input type="file" id="import-file" name="file" accept=".json,application/json">
+    <button type="submit" class="primary" id="import-button">导入</button>
+    <span class="muted">仅支持单份 .json 文件（最大 5 MiB）。图表不会随 JSON 导入，缺失项会在结果页标记为不可用。</span>
+  </form>
+  <div id="import-result" class="notice" hidden></div>
+</section>
+
+<section class="panel">
   <div class="toolbar">
     <button id="compare-button" class="primary" disabled>比较所选（0）</button>
     <span id="compare-hint" class="muted">勾选同一方案版本下至少两条已完成的记录</span>

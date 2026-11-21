@@ -301,6 +301,26 @@ class ChartTests(CatalogTestCase):
         with self.assertRaises(ChartUnavailable):
             self.catalog.chart_file(entry, 0)
 
+    def test_nul_chart_path_does_not_crash(self) -> None:
+        self.write(
+            "runs",
+            "run-nul",
+            make_record(
+                "run-nul",
+                charts=[
+                    {
+                        "id": "metrics",
+                        "title": "指标",
+                        "path": "charts/bad\u0000.png",
+                    }
+                ],
+            ),
+        )
+        entry = self.catalog.get("run-nul")
+        self.assertFalse(self.catalog.chart_available(entry, 0))
+        with self.assertRaises(ChartUnsafe):
+            self.catalog.chart_file(entry, 0)
+
     def test_unreadable_chart_marks_unavailable(self) -> None:
         entry = self._entry_with_chart()
         with mock.patch("records.catalog._is_readable", return_value=False):

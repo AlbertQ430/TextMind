@@ -76,6 +76,7 @@ curl http://127.0.0.1:8765/api/v1/health
 - 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
 - 服务只监听 `127.0.0.1`，当前版本不开启局域网访问，也不自动打开浏览器。
 - 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。设置页仍为后续任务入口。
+- 历史页支持导入单份 JSON 到 `results/imports/`；运行记录的移动、删除和恢复后果见 [results/README.md](results/README.md)。
 
 ## 实验结果概览
 

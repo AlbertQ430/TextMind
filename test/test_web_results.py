@@ -320,6 +320,27 @@ class ChartApiTests(ResultWebTestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["error"]["code"], "CHART_NOT_FOUND")
 
+    def test_malformed_chart_path_returns_409(self) -> None:
+        write_record(
+            self.runs_root,
+            make_record(
+                "run-nul",
+                charts=[
+                    {
+                        "id": "metrics",
+                        "title": "指标",
+                        "path": "charts/bad\u0000.png",
+                    }
+                ],
+            ),
+        )
+        view = self.client.get("/api/v1/runs/run-nul")
+        self.assertEqual(view.status_code, 200)
+        self.assertFalse(view.json()["charts"][0]["available"])
+        response = self.client.get("/api/v1/runs/run-nul/charts/0")
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["error"]["code"], "CHART_UNSAFE")
+
     def test_unreadable_chart_returns_404(self) -> None:
         write_record(
             self.runs_root,
