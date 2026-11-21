@@ -1,0 +1,14 @@
+[project]
+name = "textmind"
+version = "0.1.0"
+description = "TextMind 本地文本检索实验台"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+
+# 运行时依赖的唯一权威来源是 requirements.lock：
+# install.py 通过 pip install -r requirements.lock 安装并锁定版本。
+# 此处不再重复声明版本，避免与 lock 文件不一致。
+
+[tool.textmind]
+lock-file = "requirements.lock"
+app-version-source = "src/web/app.py:APP_VERSION"

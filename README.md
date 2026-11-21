@@ -52,6 +52,30 @@ TextMind 已完成一轮文本检索算法实验，相关实验代码与成果�
 
 实验结论和数据集信息属于已有技术资料，不代表软件 MVP 已经实现相应 GUI 功能。
 
+## 安装、检查与启动
+
+需要 Python 3.11（本项目在 3.11.18 上验证）。依赖统一安装在项目根目录 `.venv`，不使用全局环境、不下载模型或数据集。
+
+```bash
+# 1. 创建 .venv 并从 requirements.lock 安装锁定依赖
+#    当前 python3 不是 3.11 时，用 --python 或 TEXTMIND_PYTHON 指定 3.11 解释器
+python3 scripts/install.py --python /path/to/python3.11
+# TEXTMIND_PYTHON=/path/to/python3.11 python3 scripts/install.py
+
+# 2. 检查 Python 3.11 与核心依赖
+.venv/bin/python scripts/check_env.py
+
+# 3. 启动本地服务（默认 http://127.0.0.1:8765，仅监听回环地址）
+.venv/bin/python scripts/start.py
+
+# 4. 健康检查
+curl http://127.0.0.1:8765/api/v1/health
+```
+
+- 依赖版本以 `requirements.lock` 为唯一来源；安装失败时脚本返回非零退出码。
+- 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
+- 服务只监听 `127.0.0.1`，当前版本不开启局域网访问，也不自动打开浏览器。
+
 ## 实验结果概览
 
 以下为已有实验中的代表性结果。不同数据集使用不同语料、查询和标注，**不可跨数据集直接比较**。
@@ -78,6 +102,7 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 - [软件设计说明书（SDS v0.1 评审通过版）](docs/design/SDS.md)
 - [SRS v0.2 至 SDS 需求追溯矩阵](docs/design/srs-v0.2-traceability.md)
 - [Codex / DSH 开发协作规则](AGENTS.md)
+- [开发计划](docs/development/plan.md)
 - [开发任务索引](docs/development/README.md)
 - [开发任务模板](docs/development/TEMPLATE.md)
 - [检索实验与执行约定](docs/requirements/retrieval-lab.md)

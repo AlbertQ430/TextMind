@@ -7,6 +7,14 @@ __pycache__/
 # 忽略派生的 embedding 缓存
 data/processed/
 
+# 忽略项目虚拟环境
+.venv/
+
+# 忽略应用运行目录与日志（本地生成，不进入版本库）
+data/app/
+logs/
+results/
+
 # 忽略 DuRetrieval 数据目录：按约定不纳入版本库，可由 docs/datasets.md 记录的 commit 重新下载
 data/raw/duretrieval/
 

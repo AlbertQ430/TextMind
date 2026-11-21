@@ -145,5 +145,6 @@ Codex 验收至少检查：
 - SRS：[docs/requirements/SRS.md](docs/requirements/SRS.md)
 - SDS：[docs/design/SDS.md](docs/design/SDS.md)
 - 追溯矩阵：[docs/design/srs-v0.2-traceability.md](docs/design/srs-v0.2-traceability.md)
+- 开发计划：[docs/development/plan.md](docs/development/plan.md)
 - 协作索引：[docs/development/README.md](docs/development/README.md)
 - 任务模板：[docs/development/TEMPLATE.md](docs/development/TEMPLATE.md)
