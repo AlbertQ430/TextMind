@@ -190,13 +190,18 @@ class PageTests(unittest.TestCase):
         self.assertEqual(page.status_code, 404)
         self.assertIn("未找到方案", page.text)
 
-    def test_placeholder_pages_do_not_fake_features(self) -> None:
-        for path in ("/results", "/history", "/settings"):
-            with self.subTest(path=path):
-                html = self.client.get(path).text
-                self.assertIn("后续任务", html)
-                self.assertNotIn("P@1", html)
-                self.assertNotIn("charts", html)
+    def test_placeholders_and_real_history(self) -> None:
+        redirect = self.client.get("/results", follow_redirects=False)
+        self.assertEqual(redirect.status_code, 307)
+        self.assertEqual(redirect.headers["location"], "/history")
+
+        history = self.client.get("/history")
+        self.assertEqual(history.status_code, 200)
+        self.assertIn("暂无运行记录", history.text)
+
+        settings = self.client.get("/settings")
+        self.assertIn("后续任务", settings.text)
+        self.assertNotIn("P@1", settings.text)
 
     def test_static_assets_are_local(self) -> None:
         css = self.client.get("/static/app.css")

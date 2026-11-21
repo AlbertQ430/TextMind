@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+{% if error %}
+<section class="panel">
+  <div class="notice error">{{ error }}</div>
+  <a class="button" href="/history">返回历史记录</a>
+</section>
+{% else %}
+<section class="panel">
+  <h2>{{ comparison.plan_id }} / {{ comparison.plan_version }}</h2>
+  <p class="muted">所选记录均属于同一方案版本；同一变体的多次运行作为独立行。</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>运行</th>
+          <th>变体</th>
+          {% for column in comparison.metric_columns %}<th>{{ column }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in comparison.rows %}
+        <tr>
+          <td>
+            <a class="mono" href="/results/{{ row.run_id }}">{{ row.run_id }}</a>
+            <div class="muted">{{ row.source }}</div>
+          </td>
+          <td>{{ row.variant_name }}</td>
+          {% for column in comparison.metric_columns %}
+          {% set value = row.metrics[column] %}
+          <td>{% if value is none %}<span class="muted">不可比较</span>{% else %}{{ "%.4f"|format(value) }}{% endif %}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        {% if comparison.baseline %}
+        <tr class="baseline">
+          <td>
+            <span class="mono">{{ comparison.baseline.run_id }}</span>
+            <div class="muted">{{ comparison.baseline.source }}</div>
+          </td>
+          <td>{{ comparison.baseline.variant_name }}（参照）</td>
+          {% for column in comparison.metric_columns %}
+          {% set value = comparison.baseline.metrics[column] %}
+          <td>{% if value is none %}<span class="muted">不可比较</span>{% else %}{{ "%.4f"|format(value) }}{% endif %}</td>
+          {% endfor %}
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>比较图</h2>
+  {% if comparison.chart_available %}
+  <img class="compare-chart" src="{{ comparison.chart_url }}" alt="所选记录的指标比较图">
+  <p class="muted">仅绘制所有所选记录都拥有的共同指标（{{ comparison.common_metric_columns | join(", ") }}）；比较图按需在内存生成，不写入任何运行目录。</p>
+  {% else %}
+  <div class="notice error">{{ comparison.chart_message }}</div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>配置差异</h2>
+  {% if comparison.config_differences %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>配置项</th>
+          {% for row in comparison.rows %}<th>{{ row.variant_name }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, values in comparison.config_differences.items() %}
+        <tr>
+          <td class="mono">{{ key }}</td>
+          {% for row in comparison.rows %}<td>{{ values[row.run_id] }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">所选记录配置相同。</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>环境差异</h2>
+  {% if comparison.environment_differences %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>环境项</th>
+          {% for row in comparison.rows %}<th>{{ row.variant_name }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, values in comparison.environment_differences.items() %}
+        <tr>
+          <td class="mono">{{ key }}</td>
+          {% for row in comparison.rows %}<td>{{ values[row.run_id] }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">环境差异仅用于说明运行条件，不推断因果。</p>
+  {% else %}
+  <p class="muted">所选记录环境相同。</p>
+  {% endif %}
+</section>
+
+<p><a class="button" href="/history">返回历史记录</a></p>
+{% endif %}
+{% endblock %}

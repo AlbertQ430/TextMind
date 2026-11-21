@@ -296,7 +296,7 @@
         poll();
         return;
       }
-      var source = new EventSource("/api/v1/events");
+      var source = new window.EventSource("/api/v1/events");
       source.addEventListener("snapshot", function (event) {
         applySnapshot(JSON.parse(event.data));
         failures = 0;
@@ -330,5 +330,233 @@
   if (document.getElementById("task-list")) {
     startMonitor();
     window.setInterval(tickElapsed, 1000);
+  }
+
+  // ---------------------------------------------------------------- 历史与比较
+  function initHistory() {
+    var body = document.getElementById("history-body");
+    if (!body) {
+      return;
+    }
+    var selected = new Map();
+    var compareButton = document.getElementById("compare-button");
+    var compareHint = document.getElementById("compare-hint");
+
+    function metricSummary(metrics) {
+      if (!metrics) {
+        return "—";
+      }
+      return Object.keys(metrics)
+        .slice(0, 2)
+        .map(function (name) {
+          return name + "=" + Number(metrics[name]).toFixed(3);
+        })
+        .join(" ");
+    }
+
+    function cell(text, className) {
+      var td = document.createElement("td");
+      if (className) {
+        td.className = className;
+      }
+      td.textContent = text;
+      return td;
+    }
+
+    function renderRows(data) {
+      clear(body);
+      (data.records || []).forEach(function (record) {
+        var tr = document.createElement("tr");
+
+        var selectCell = document.createElement("td");
+        if (record.comparison_eligible) {
+          var checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "history-select";
+          checkbox.dataset.runId = record.run_id;
+          checkbox.dataset.planId = record.plan_id;
+          checkbox.dataset.planVersion = record.plan_version;
+          selectCell.appendChild(checkbox);
+        }
+        tr.appendChild(selectCell);
+
+        var planCell = document.createElement("td");
+        var link = document.createElement("a");
+        link.href = "/results/" + encodeURIComponent(record.run_id);
+        link.textContent = record.plan_name;
+        planCell.appendChild(link);
+        tr.appendChild(planCell);
+        tr.appendChild(cell(record.variant_name));
+        tr.appendChild(cell(record.plan_version));
+
+        var sourceCell = document.createElement("td");
+        var tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = record.source;
+        sourceCell.appendChild(tag);
+        tr.appendChild(sourceCell);
+
+        var statusCell = document.createElement("td");
+        var status = document.createElement("span");
+        status.className = "status " + record.status;
+        status.textContent = record.status;
+        statusCell.appendChild(status);
+        tr.appendChild(statusCell);
+
+        tr.appendChild(cell(formatTime(record.started_at)));
+        tr.appendChild(cell(metricSummary(record.metrics), "metric-cell"));
+        tr.appendChild(cell(record.run_id, "mono"));
+        body.appendChild(tr);
+      });
+
+      var empty = document.getElementById("history-empty");
+      if (empty) {
+        empty.hidden = (data.records || []).length > 0;
+      }
+      renderUnavailable(data.unavailable || []);
+      selected.clear();
+      updateCompareButton();
+    }
+
+    function renderUnavailable(items) {
+      var container = document.getElementById("unavailable-list");
+      if (!container) {
+        return;
+      }
+      clear(container);
+      if (!items.length) {
+        var empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "无不可用记录。";
+        container.appendChild(empty);
+        return;
+      }
+      var list = document.createElement("ul");
+      list.className = "unavailable";
+      items.forEach(function (item) {
+        var li = document.createElement("li");
+        var tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = item.source;
+        var runId = document.createElement("span");
+        runId.className = "mono";
+        runId.textContent = item.run_id;
+        li.appendChild(tag);
+        li.appendChild(document.createTextNode(" "));
+        li.appendChild(runId);
+        li.appendChild(
+          document.createTextNode(" — " + item.code + "：" + item.message)
+        );
+        list.appendChild(li);
+      });
+      container.appendChild(list);
+    }
+
+    function updateCompareButton() {
+      if (!compareButton) {
+        return;
+      }
+      compareButton.disabled = selected.size < 2;
+      compareButton.textContent = "比较所选（" + selected.size + "）";
+      if (compareHint) {
+        compareHint.textContent =
+          selected.size >= 2
+            ? "仅比较同一方案版本内已完成的记录"
+            : "勾选同一方案版本下至少两条已完成的记录";
+      }
+    }
+
+    body.addEventListener("change", function (event) {
+      var checkbox = event.target;
+      if (!checkbox.classList || !checkbox.classList.contains("history-select")) {
+        return;
+      }
+      var runId = checkbox.dataset.runId;
+      var planKey = checkbox.dataset.planId + "|" + checkbox.dataset.planVersion;
+      if (checkbox.checked) {
+        var currentPlan = null;
+        selected.forEach(function (value) {
+          currentPlan = value;
+        });
+        if (currentPlan && currentPlan !== planKey) {
+          checkbox.checked = false;
+          showNotice("只能选择同一方案和版本的记录", "error");
+          return;
+        }
+        selected.set(runId, planKey);
+      } else {
+        selected.delete(runId);
+      }
+      updateCompareButton();
+    });
+
+    if (compareButton) {
+      compareButton.addEventListener("click", function () {
+        if (selected.size < 2) {
+          return;
+        }
+        var ids = Array.from(selected.keys()).map(encodeURIComponent);
+        window.location.href = "/compare?runs=" + ids.join(",");
+      });
+    }
+
+    function reload() {
+      fetch("/api/v1/runs", { credentials: "same-origin" })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("历史记录读取失败");
+          }
+          return response.json();
+        })
+        .then(renderRows)
+        .catch(function () {
+          showNotice("历史记录刷新失败，请稍后重试", "error");
+        });
+    }
+
+    var pollingStarted = false;
+
+    function startPolling() {
+      if (pollingStarted) {
+        return;
+      }
+      pollingStarted = true;
+      reload();
+      window.setInterval(reload, 5000);
+    }
+
+    if (window.EventSource) {
+      var failures = 0;
+      function connect() {
+        var source = new window.EventSource("/api/v1/events");
+        var failed = false;
+        source.addEventListener("records.changed", function () {
+          failures = 0;
+          reload();
+        });
+        source.onerror = function () {
+          if (failed) {
+            return;
+          }
+          failed = true;
+          source.close();
+          failures += 1;
+          if (failures > 3) {
+            startPolling();
+          } else {
+            window.setTimeout(connect, 2000);
+          }
+        };
+      }
+      connect();
+    } else {
+      startPolling();
+    }
+
+    updateCompareButton();
+  }
+
+  if (document.getElementById("history-body")) {
+    initHistory();
   }
 })();

@@ -169,3 +169,111 @@ def task_snapshot(tasks: list[TaskRecord]) -> dict:
         "queue": queue,
         "tasks": summaries,
     }
+
+
+# ---------------------------------------------------------------------- 结果序列化
+def record_summary(entry, catalog) -> dict:
+    """历史列表中的单条有效记录摘要。"""
+    record = entry.record
+    return {
+        "run_id": entry.run_id,
+        "source": entry.source,
+        "plan_id": record.plan_id,
+        "plan_version": record.plan_version,
+        "variant_id": record.variant_id,
+        "plan_name": record.plan_name,
+        "variant_name": record.variant_name,
+        "status": record.status,
+        "started_at": _iso(record.started_at),
+        "finished_at": _iso(record.finished_at),
+        "metrics": record.metrics,
+        "comparison_eligible": catalog.comparison_eligible(record),
+        "is_reference": entry.is_reference,
+    }
+
+
+def record_view(entry, catalog) -> dict:
+    """单运行详情：原样记录视图加来源和图表可用性。"""
+    record = entry.record
+    charts = []
+    for index, chart in enumerate(record.charts):
+        available = catalog.chart_available(entry, index)
+        charts.append(
+            {
+                "index": index,
+                "id": chart.id,
+                "title": chart.title,
+                "available": available,
+                "url": (
+                    f"/api/v1/runs/{record.run_id}/charts/{index}"
+                    if available
+                    else None
+                ),
+            }
+        )
+    return {
+        "run": record.model_dump(mode="json"),
+        "source": entry.source,
+        "known_plan": catalog.known_plan(record) is not None,
+        "comparison_eligible": catalog.comparison_eligible(record),
+        "is_reference": entry.is_reference,
+        "charts": charts,
+    }
+
+
+TIMING_DISPLAY: tuple[tuple[str, str, int], ...] = (
+    ("dataset_load_seconds", "加载数据集", 0),
+    ("model_load_seconds", "加载模型", 0),
+    ("index_build_seconds", "构建索引（父项）", 0),
+    ("doc_cache_load_seconds", "文档缓存加载", 1),
+    ("corpus_encode_seconds", "语料编码", 1),
+    ("query_cache_load_seconds", "查询缓存加载", 1),
+    ("query_encode_seconds", "查询编码", 1),
+    ("bm25_search_total_seconds", "BM25 检索总计", 0),
+    ("dense_search_total_seconds", "Dense 检索总计", 0),
+    ("rrf_fusion_seconds", "RRF 融合", 0),
+    ("retrieval_total_seconds", "检索总计", 0),
+    ("retrieval_mean_seconds", "单查询检索均值", 0),
+    ("retrieval_median_seconds", "单查询检索中位数", 0),
+    ("evaluation_seconds", "指标评价", 0),
+)
+
+CACHE_TIMING_FIELDS = {"corpus_encode_seconds", "query_encode_seconds"}
+
+
+def timing_rows(record) -> list[dict]:
+    """把 14 项耗时转成展示行：null 不适用、0.0 缓存命中、均值口径说明。"""
+    timing = (record.model_dump(mode="json").get("timing") or {})
+    rows = []
+    for field, label, level in TIMING_DISPLAY:
+        value = timing.get(field)
+        if value is None:
+            rows.append(
+                {
+                    "field": field,
+                    "label": label,
+                    "level": level,
+                    "display": "不适用",
+                    "note": None,
+                    "value": None,
+                }
+            )
+            continue
+        display = f"{value * 1000.0:.3f} ms"
+        if field in CACHE_TIMING_FIELDS and value == 0.0:
+            note = "缓存命中"
+        elif field == "retrieval_mean_seconds":
+            note = f"{value:.6f} s（不包含查询编码）"
+        else:
+            note = f"{value:.6f} s"
+        rows.append(
+            {
+                "field": field,
+                "label": label,
+                "level": level,
+                "display": display,
+                "note": note,
+                "value": value,
+            }
+        )
+    return rows

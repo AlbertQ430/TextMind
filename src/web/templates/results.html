@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>{{ record.plan_name }} / {{ record.variant_name }}</h2>
+  <dl class="facts">
+    <dt>状态</dt><dd><span class="status {{ record.status }}">{{ record.status }}</span></dd>
+    <dt>来源</dt><dd><span class="tag">{{ source }}</span>{% if view.is_reference %}<span class="tag">参照结果</span>{% endif %}</dd>
+    <dt>Run ID</dt><dd class="mono">{{ record.run_id }}</dd>
+    <dt>方案</dt><dd><a href="/plans/{{ record.plan_id }}">{{ record.plan_id }}</a> / {{ record.plan_version }}</dd>
+    <dt>数据集</dt><dd>{{ record.dataset.name }}（{{ record.dataset.split }}）</dd>
+    <dt>规模</dt><dd>语料 {{ record.dataset.corpus_size if record.dataset.corpus_size is not none else "未记录" }} · 查询 {{ record.dataset.query_count if record.dataset.query_count is not none else "未记录" }} · qrels {{ record.dataset.qrels_pairs if record.dataset.qrels_pairs is not none else "未记录" }}</dd>
+    <dt>开始时间</dt><dd>{{ record.started_at }}</dd>
+    <dt>结束时间</dt><dd>{{ record.finished_at }}</dd>
+    {% if record.cancelled_at %}<dt>取消时间</dt><dd>{{ record.cancelled_at }}</dd>{% endif %}
+  </dl>
+  {% if record.error %}
+  <div class="notice error">
+    错误：{{ record.error.message }}
+    {% if record.error.stage %}（阶段：{{ record.error.stage }}）{% endif %}
+  </div>
+  <details class="error-detail">
+    <summary>错误详情</summary>
+    {% if record.error.detail %}
+    <pre class="mono">{{ record.error.detail }}</pre>
+    {% else %}
+    <p class="muted">未记录</p>
+    {% endif %}
+  </details>
+  {% endif %}
+  {% if record.status != "Completed" %}
+  <p class="muted">该记录未正常完成，仅展示已有信息；缺失指标不会补零。</p>
+  {% endif %}
+  {% if not view.known_plan %}
+  <p class="muted">该记录对应的方案或变体不在当前方案目录中，仅作只读展示，不能参与比较。</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>指标</h2>
+  {% if record.metrics %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>指标</th><th>值</th></tr></thead>
+      <tbody>
+        {% for name, value in record.metrics.items() %}
+        <tr><td>{{ name }}</td><td>{{ "%.4f"|format(value) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">无可用指标。</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>分阶段耗时</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>阶段</th><th>耗时</th><th>说明</th></tr></thead>
+      <tbody>
+        {% for row in timing_rows %}
+        <tr class="timing-level-{{ row.level }}">
+          <td>{% if row.level %}<span class="tree">└</span> {% endif %}{{ row.label }}</td>
+          <td>{{ row.display }}</td>
+          <td class="muted">{{ row.note or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>图表</h2>
+  {% if view.charts %}
+  <div class="chart-grid">
+    {% for chart in view.charts %}
+      {% if chart.available %}
+      <figure>
+        <img src="{{ chart.url }}" alt="{{ chart.title }}" loading="lazy">
+        <figcaption>{{ chart.title }}</figcaption>
+      </figure>
+      {% else %}
+      <figure class="chart-missing">
+        <div class="chart-placeholder">图表不可用</div>
+        <figcaption>{{ chart.title }}</figcaption>
+      </figure>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">该记录没有图表。</p>
+  {% endif %}
+</section>
+
+<details class="panel">
+  <summary>配置</summary>
+  <pre class="mono">{{ record.variant_config | tojson(indent=2) }}</pre>
+</details>
+
+<details class="panel">
+  <summary>环境</summary>
+  {% if record.environment %}
+  <pre class="mono">{{ record.environment | tojson(indent=2) }}</pre>
+  {% else %}
+  <p class="muted">未记录</p>
+  {% endif %}
+</details>
+{% endblock %}

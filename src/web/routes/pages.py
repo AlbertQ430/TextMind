@@ -1,13 +1,31 @@
-"""页面路由：实验中心、方案详情、运行监控与占位页。"""
+"""页面路由：实验中心、方案详情、运行监控、结果、历史与比较。"""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
-from web.routes import find_plan, plan_detail, plan_summary
+from records.catalog import CatalogError
+from records.compare import (
+    CompareNoMetricsError,
+    CompareSelectionError,
+    build_selection,
+    compare,
+)
+from web.routes import (
+    find_plan,
+    plan_detail,
+    plan_summary,
+    record_summary,
+    record_view,
+    timing_rows,
+)
 
 router = APIRouter()
+
+
+def _result_catalog(request: Request):
+    return getattr(request.app.state.context, "result_catalog", None)
 
 
 def _render(request: Request, template_name: str, *, status_code: int = 200, **context):
@@ -26,10 +44,12 @@ def _placeholder(
     back: str | None = None,
     back_label: str | None = None,
     active: str = "",
+    status_code: int = 200,
 ):
     return _render(
         request,
         "placeholder.html",
+        status_code=status_code,
         title=title,
         message=message,
         back=back,
@@ -84,34 +104,103 @@ def monitor_page(request: Request):
 
 
 @router.get("/results")
-def results_page(request: Request):
-    return _placeholder(
-        request,
-        "实验结果",
-        "结果详情将在后续任务实现。本页仅提供入口，不展示任何结果数据。",
-        active="results",
-    )
+def results_page() -> RedirectResponse:
+    return RedirectResponse(url="/history", status_code=307)
 
 
 @router.get("/results/{run_id}")
 def result_page(run_id: str, request: Request):
-    return _placeholder(
+    catalog = _result_catalog(request)
+    if catalog is None:
+        return _placeholder(
+            request,
+            "实验结果",
+            "结果目录不可用，请返回历史记录。",
+            back="/history",
+            back_label="返回历史记录",
+            active="results",
+        )
+    try:
+        entry = catalog.get(run_id)
+    except CatalogError as exc:
+        return _placeholder(
+            request,
+            "实验结果",
+            exc.message,
+            back="/history",
+            back_label="返回历史记录",
+            active="results",
+            status_code=exc.status_code,
+        )
+    return _render(
         request,
-        "实验结果",
-        f"运行 {run_id} 的结果详情将在后续任务实现，当前不展示伪造或占位数据。",
-        back="/results",
-        back_label="返回实验结果",
+        "results.html",
+        title="实验结果",
         active="results",
+        record=entry.record,
+        view=record_view(entry, catalog),
+        source=entry.source,
+        timing_rows=timing_rows(entry.record),
     )
 
 
 @router.get("/history")
 def history_page(request: Request):
-    return _placeholder(
+    catalog = _result_catalog(request)
+    if catalog is None:
+        return _render(
+            request,
+            "history.html",
+            title="历史记录",
+            active="history",
+            records=[],
+            unavailable=[],
+        )
+    scan = catalog.scan()
+    return _render(
         request,
-        "历史记录",
-        "历史记录与同方案比较将在后续任务实现。本页仅提供入口。",
+        "history.html",
+        title="历史记录",
         active="history",
+        records=[record_summary(entry, catalog) for entry in scan.records],
+        unavailable=[
+            {
+                "run_id": item.run_id,
+                "source": item.source,
+                "code": item.code,
+                "message": item.message,
+            }
+            for item in scan.unavailable
+        ],
+    )
+
+
+@router.get("/compare")
+def compare_page(request: Request, runs: str = ""):
+    catalog = _result_catalog(request)
+    run_ids = [item for item in runs.split(",") if item]
+    comparison = None
+    error = None
+    if catalog is None:
+        error = "结果目录不可用，请返回历史记录。"
+    else:
+        try:
+            selection = build_selection(catalog, run_ids)
+            comparison = compare(selection)
+        except CompareSelectionError as exc:
+            error = str(exc)
+        except CompareNoMetricsError as exc:
+            error = str(exc)
+        except CatalogError as exc:
+            error = exc.message
+    return _render(
+        request,
+        "compare.html",
+        title="结果比较",
+        active="history",
+        comparison=comparison,
+        error=error,
+        run_ids=run_ids,
     )
 
 

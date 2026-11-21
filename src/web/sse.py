@@ -51,6 +51,13 @@ def _queue_key(payload: dict) -> str:
     )
 
 
+def _records_key(context: AppContext) -> str:
+    catalog = getattr(context, "result_catalog", None)
+    if catalog is None:
+        return ""
+    return catalog.fingerprint()
+
+
 def build_snapshot(context: AppContext) -> dict:
     payload = _task_payload(context)
     payload["generated_at"] = datetime.now(timezone.utc).isoformat()
@@ -66,6 +73,7 @@ async def event_stream(request: Request, context: AppContext):
 
     last_task_key = _task_key(initial)
     last_queue_key = _queue_key(initial)
+    last_records_key = _records_key(context)
     loop = asyncio.get_event_loop()
     last_heartbeat = loop.time()
     poll_interval = max(context.sse_poll_interval, 0.01)
@@ -79,7 +87,12 @@ async def event_stream(request: Request, context: AppContext):
         payload = _task_payload(context)
         task_key = _task_key(payload)
         queue_key = _queue_key(payload)
-        if task_key == last_task_key and queue_key == last_queue_key:
+        records_key = _records_key(context)
+        task_changed = task_key != last_task_key
+        queue_changed = queue_key != last_queue_key
+        records_changed = records_key != last_records_key
+
+        if not (task_changed or queue_changed or records_changed):
             if loop.time() - last_heartbeat >= heartbeat_interval:
                 yield heartbeat_event()
                 last_heartbeat = loop.time()
@@ -87,10 +100,21 @@ async def event_stream(request: Request, context: AppContext):
 
         event_payload = dict(payload)
         event_payload["generated_at"] = datetime.now(timezone.utc).isoformat()
-        if queue_key != last_queue_key:
+        if queue_changed:
             yield format_event("queue.updated", event_payload)
             last_queue_key = queue_key
-        if task_key != last_task_key:
+        if task_changed:
             yield format_event("task.updated", event_payload)
             last_task_key = task_key
+        if records_changed:
+            yield format_event(
+                "records.changed",
+                {
+                    "changed": True,
+                    "generated_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                },
+            )
+            last_records_key = records_key
         last_heartbeat = loop.time()

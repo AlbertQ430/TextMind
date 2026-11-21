@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="toolbar">
+    <button id="compare-button" class="primary" disabled>比较所选（0）</button>
+    <span id="compare-hint" class="muted">勾选同一方案版本下至少两条已完成的记录</span>
+  </div>
+  <div class="table-wrap">
+    <table id="history-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>方案</th>
+          <th>变体</th>
+          <th>版本</th>
+          <th>来源</th>
+          <th>状态</th>
+          <th>时间</th>
+          <th>指标</th>
+          <th>Run ID</th>
+        </tr>
+      </thead>
+      <tbody id="history-body">
+        {% for record in records %}
+        <tr>
+          <td>
+            {% if record.comparison_eligible %}
+            <input type="checkbox" class="history-select"
+                   data-run-id="{{ record.run_id }}"
+                   data-plan-id="{{ record.plan_id }}"
+                   data-plan-version="{{ record.plan_version }}">
+            {% endif %}
+          </td>
+          <td><a href="/results/{{ record.run_id }}">{{ record.plan_name }}</a></td>
+          <td>{{ record.variant_name }}</td>
+          <td>{{ record.plan_version }}</td>
+          <td><span class="tag">{{ record.source }}</span></td>
+          <td><span class="status {{ record.status }}">{{ record.status }}</span></td>
+          <td>{{ record.started_at }}</td>
+          <td class="metric-cell">
+            {% if record.metrics %}
+              {% for name, value in record.metrics.items() %}{% if loop.index <= 2 %}{{ name }}={{ "%.3f"|format(value) }} {% endif %}{% endfor %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="mono">{{ record.run_id }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="history-empty" class="empty"{% if records %} hidden{% endif %}>
+    暂无运行记录。完成一次实验后，结果会出现在这里。
+  </div>
+  <p class="muted">等权参照结果不计入普通历史；损坏或冲突记录显示在下方。</p>
+</section>
+
+<section class="panel">
+  <h2>不可用记录</h2>
+  <div id="unavailable-list">
+    {% if unavailable %}
+    <ul class="unavailable">
+      {% for item in unavailable %}
+      <li><span class="tag">{{ item.source }}</span> <span class="mono">{{ item.run_id }}</span> — {{ item.code }}：{{ item.message }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">无不可用记录。</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
