@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel placeholder">
+  <p>{{ message }}</p>
+  {% if back %}<a class="button" href="{{ back }}">{{ back_label or "返回" }}</a>{% endif %}
+</section>
+{% endblock %}

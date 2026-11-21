@@ -17,6 +17,10 @@ INSTANCE_LOCK_PATH: Path = APP_DATA_DIR / "textmind.lock"
 CONFIG_DIR: Path = PROJECT_ROOT / "config"
 SCHEMAS_DIR: Path = PROJECT_ROOT / "schemas"
 
+WEB_DIR: Path = PROJECT_ROOT / "src" / "web"
+TEMPLATES_DIR: Path = WEB_DIR / "templates"
+STATIC_DIR: Path = WEB_DIR / "static"
+
 RESULTS_DIR: Path = PROJECT_ROOT / "results"
 PRESETS_DIR: Path = RESULTS_DIR / "presets"
 RUNS_DIR: Path = RESULTS_DIR / "runs"

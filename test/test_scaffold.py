@@ -23,24 +23,65 @@ from fastapi.testclient import TestClient  # noqa: E402
 import check_env  # noqa: E402
 import paths  # noqa: E402
 import web.app as web_app  # noqa: E402
+from experiment.plans import load_plan_catalog  # noqa: E402
+from tasks.models import TaskNotFoundError, TaskSubmitError  # noqa: E402
+from web.session import SessionStore  # noqa: E402
+
+
+class FakeTaskService:
+    def start(self) -> None:
+        return None
+
+    def stop_normal(self, reason: str = "服务关闭") -> None:
+        return None
+
+    def list_tasks(self):
+        return []
+
+    def get(self, run_id):
+        raise TaskNotFoundError(run_id)
+
+    def submit(self, *args):
+        raise TaskSubmitError("测试上下文不提交任务")
+
+    def cancel(self, run_id):
+        raise TaskNotFoundError(run_id)
+
+
+class FakeContext:
+    def __init__(self) -> None:
+        self.catalog = load_plan_catalog()
+        self.task_service = FakeTaskService()
+        self.session_store = SessionStore()
+        self.sse_poll_interval = 0.05
+        self.sse_heartbeat_interval = 15.0
+        self.started = 0
+        self.stopped = 0
+
+    def start(self) -> None:
+        self.started += 1
+
+    def stop(self) -> None:
+        self.stopped += 1
 
 
 class HealthCheckTests(unittest.TestCase):
     def test_health_returns_contract_json(self) -> None:
-        with mock.patch.object(web_app, "ensure_app_dirs") as ensure:
-            app = web_app.create_app()
-            with TestClient(app) as client:
-                response = client.get("/api/v1/health")
-            ensure.assert_called_once()
+        context = FakeContext()
+        app = web_app.create_app(context)
+        with TestClient(app) as client:
+            response = client.get("/api/v1/health")
+            self.assertEqual(context.started, 1)
+        self.assertEqual(context.stopped, 1)
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers["content-type"].startswith("application/json"))
         self.assertEqual(response.json(), {"status": "ok", "version": "0.1.0"})
 
     def test_health_does_not_leak_host_or_paths(self) -> None:
-        with mock.patch.object(web_app, "ensure_app_dirs"):
-            with TestClient(web_app.create_app()) as client:
-                text = client.get("/api/v1/health").text
+        app = web_app.create_app(FakeContext())
+        with TestClient(app) as client:
+            text = client.get("/api/v1/health").text
 
         self.assertNotIn(socket.gethostname(), text)
         self.assertNotIn(str(PROJECT_ROOT), text)
@@ -49,8 +90,7 @@ class HealthCheckTests(unittest.TestCase):
 
     def test_create_app_starts_no_background_thread(self) -> None:
         before = threading.active_count()
-        with mock.patch.object(web_app, "ensure_app_dirs"):
-            app = web_app.create_app()
+        app = web_app.create_app(FakeContext())
         self.assertEqual(threading.active_count(), before)
         self.assertEqual(app.version, "0.1.0")
 

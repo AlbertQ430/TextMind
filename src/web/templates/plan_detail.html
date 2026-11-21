@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted">{{ plan.description }}</p>
+
+<section class="panel">
+  <h2>方案信息</h2>
+  <dl class="facts">
+    <dt>方案 ID</dt><dd class="mono">{{ plan.plan_id }}</dd>
+    <dt>版本</dt><dd>{{ plan.plan_version }}</dd>
+    <dt>数据集</dt><dd>{{ plan.dataset.name }}（{{ plan.dataset.language }} / {{ plan.dataset.split }}）</dd>
+    <dt>检索深度</dt><dd>top_k={{ plan.evaluation.top_k }}</dd>
+    <dt>评价 K</dt><dd>{{ plan.evaluation.k_values | join(", ") }}</dd>
+  </dl>
+</section>
+
+<section class="panel">
+  <h2>变体</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>变体</th>
+          <th>方法</th>
+          <th>配置摘要</th>
+          <th>预置结果</th>
+          <th>资源</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for variant in plan.variants %}
+        <tr>
+          <td>
+            <strong>{{ variant.name }}</strong>
+            <div class="mono muted">{{ variant.variant_id }}</div>
+          </td>
+          <td>{{ variant.method or "参照" }}</td>
+          <td class="config">
+            {% if variant.method == "bm25" %}
+              k1={{ variant.k1 }} · b={{ variant.b }} · {{ variant.tokenizer }}
+            {% elif variant.method == "dense" %}
+              模型 {{ variant.model.name }}
+              {% if variant.query_prefix %}<br><span class="mono">前缀：{{ variant.query_prefix }}</span>{% endif %}
+              <br>batch_size={{ variant.batch_size }}
+            {% elif variant.method == "hybrid" %}
+              模型 {{ variant.model.name }} · RRF k={{ variant.rrf_k }} · 权重 {{ variant.rrf_weights | join(", ") }}
+              {% if variant.query_prefix %}<br><span class="mono">前缀：{{ variant.query_prefix }}</span>{% endif %}
+            {% else %}
+              {{ variant.source_plan_id }} / {{ variant.source_variant_id }}
+            {% endif %}
+          </td>
+          <td>
+            {% if variant.preset_run_id %}<span class="mono">{{ variant.preset_run_id }}</span>{% else %}—{% endif %}
+            {% if variant.kind == "reference" %}<span class="tag">参照</span>{% endif %}
+          </td>
+          <td>{{ variant.resource_status }}</td>
+          <td>
+            {% if variant.runnable %}
+            <button class="primary"
+                    data-run-plan="{{ plan.plan_id }}"
+                    data-run-version="{{ plan.plan_version }}"
+                    data-run-variant="{{ variant.variant_id }}">运行</button>
+            {% else %}
+            <button disabled title="参照结果不可提交">不可运行</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

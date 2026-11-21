@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    print(f"[信息] TextMind {APP_VERSION} 启动中：http://{LOCAL_HOST}:{args.port}/api/v1/health")
+    print(f"[信息] TextMind {APP_VERSION} 启动中：http://{LOCAL_HOST}:{args.port}/plans")
 
     import uvicorn  # 延迟导入，环境检查失败时不加载服务器
 

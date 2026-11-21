@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>当前任务</h2>
+  <div id="current-task" class="empty">暂无运行中的任务</div>
+</section>
+
+<section class="panel">
+  <h2>等待队列</h2>
+  <div id="queue" class="empty">队列为空</div>
+</section>
+
+<section class="panel">
+  <h2>全部任务</h2>
+  <div id="task-list" class="empty">暂无任务</div>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ title }} · TextMind</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">TextMind</div>
+      <nav>
+        <a href="/plans"{% if active == "plans" %} class="active"{% endif %}>实验中心</a>
+        <a href="/monitor"{% if active == "monitor" %} class="active"{% endif %}>运行监控</a>
+        <a href="/results"{% if active == "results" %} class="active"{% endif %}>实验结果</a>
+        <a href="/history"{% if active == "history" %} class="active"{% endif %}>历史记录</a>
+        <a href="/settings"{% if active == "settings" %} class="active"{% endif %}>设置</a>
+      </nav>
+    </aside>
+    <main class="workspace">
+      <header class="page-header">
+        <h1>{{ title }}</h1>
+      </header>
+      <div id="notice" class="notice" hidden></div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

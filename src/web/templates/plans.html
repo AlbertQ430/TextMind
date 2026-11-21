@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="plan-grid">
+  {% for plan in plans %}
+  <a class="plan-card" href="/plans/{{ plan.plan_id }}">
+    <h2>{{ plan.name }}</h2>
+    <p class="muted">{{ plan.description }}</p>
+    <dl class="facts">
+      <dt>数据集</dt><dd>{{ plan.dataset.name }}</dd>
+      <dt>语言</dt><dd>{{ plan.dataset.language }}</dd>
+      <dt>划分</dt><dd>{{ plan.dataset.split }}</dd>
+      <dt>变体</dt><dd>{{ plan.run_variant_count }} 个可运行 / {{ plan.variant_count }} 项</dd>
+    </dl>
+    <span class="card-link">查看方案详情 →</span>
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}
