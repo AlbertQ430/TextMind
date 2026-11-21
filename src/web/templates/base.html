@@ -16,7 +16,11 @@
         <a href="/monitor"{% if active == "monitor" %} class="active"{% endif %}>运行监控</a>
         <a href="/results"{% if active == "results" %} class="active"{% endif %}>实验结果</a>
         <a href="/history"{% if active == "history" %} class="active"{% endif %}>历史记录</a>
+        {% if is_local %}
         <a href="/settings"{% if active == "settings" %} class="active"{% endif %}>设置</a>
+        {% else %}
+        <button type="button" id="lan-logout-button" class="nav-button">退出登录</button>
+        {% endif %}
       </nav>
     </aside>
     <main class="workspace">
@@ -24,6 +28,7 @@
         <h1>{{ title }}</h1>
       </header>
       <div id="notice" class="notice" hidden></div>
+      <section id="notices" class="notices" hidden></section>
       {% block content %}{% endblock %}
     </main>
   </div>

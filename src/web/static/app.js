@@ -32,6 +32,13 @@
     Interrupted: "已中断"
   };
 
+  function watchSessionExpired(source) {
+    source.addEventListener("session.expired", function () {
+      source.close();
+      window.location.href = "/lan/login";
+    });
+  }
+
   function showNotice(message, kind) {
     var el = document.getElementById("notice");
     if (!el) {
@@ -297,6 +304,7 @@
         return;
       }
       var source = new window.EventSource("/api/v1/events");
+      watchSessionExpired(source);
       source.addEventListener("snapshot", function (event) {
         applySnapshot(JSON.parse(event.data));
         failures = 0;
@@ -597,6 +605,7 @@
       var failures = 0;
       function connect() {
         var source = new window.EventSource("/api/v1/events");
+        watchSessionExpired(source);
         var failed = false;
         source.addEventListener("records.changed", function () {
           failures = 0;
@@ -707,6 +716,7 @@
 
     function connect() {
       var source = new window.EventSource("/api/v1/events");
+      watchSessionExpired(source);
       var failed = false;
       source.addEventListener("settings.changed", function () {
         failures = 0;
@@ -732,6 +742,7 @@
 
   if (document.getElementById("settings-form")) {
     initSettings();
+    initNetwork();
     startSettingsWatcher();
   } else if (
     document.getElementById("plan-variants") ||
@@ -739,4 +750,210 @@
   ) {
     startSettingsWatcher();
   }
+
+  // ---------------------------------------------------------------- 系统提示与局域网
+  function initNotices() {
+    var container = document.getElementById("notices");
+    if (!container) {
+      return;
+    }
+    function render(items) {
+      clear(container);
+      if (!items.length) {
+        container.hidden = true;
+        return;
+      }
+      container.hidden = false;
+      items.forEach(function (item) {
+        var row = document.createElement("div");
+        row.className = "notice info";
+        var text = document.createElement("span");
+        text.textContent = item.message;
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "知道了";
+        button.addEventListener("click", function () {
+          fetch("/api/v1/notices/" + item.id + "/ack", {
+            method: "POST",
+            headers: { "X-CSRF-Token": csrfToken },
+            credentials: "same-origin",
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error("确认失败");
+              }
+              row.remove();
+              if (!container.querySelector(".notice")) {
+                container.hidden = true;
+              }
+            })
+            .catch(function () {
+              showNotice("确认提示失败，请稍后重试", "error");
+            });
+        });
+        row.appendChild(text);
+        row.appendChild(button);
+        container.appendChild(row);
+      });
+    }
+    fetch("/api/v1/notices", { credentials: "same-origin" })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("读取提示失败");
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        render(data.notices || []);
+      })
+      .catch(function () {
+        container.hidden = true;
+      });
+  }
+
+  function initLanLogout() {
+    var button = document.getElementById("lan-logout-button");
+    if (!button) {
+      return;
+    }
+    button.addEventListener("click", function () {
+      fetch("/lan/logout", {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrfToken },
+        credentials: "same-origin",
+      }).then(function () {
+        window.location.href = "/lan/login";
+      });
+    });
+  }
+
+  function initNetwork() {
+    var panel = document.getElementById("network-panel");
+    if (!panel) {
+      return;
+    }
+    var stateEl = document.getElementById("network-state");
+    var portEl = document.getElementById("network-port");
+    var addressesEl = document.getElementById("network-addresses");
+    var codeEl = document.getElementById("network-code");
+    var enableButton = document.getElementById("network-enable");
+    var disableButton = document.getElementById("network-disable");
+    var portInput = document.getElementById("lan-port");
+    var result = document.getElementById("network-result");
+
+    function render(data) {
+      stateEl.textContent = data.enabled ? "已开启" : "已关闭";
+      portEl.textContent = data.port || "—";
+      if (data.enabled && data.addresses && data.addresses.length) {
+        addressesEl.textContent = data.addresses.join("、");
+      } else {
+        addressesEl.textContent = data.enabled
+          ? "未检测到非回环 IPv4 地址，请检查网络连接"
+          : "—";
+      }
+      codeEl.textContent = data.access_code || "—";
+      enableButton.disabled = Boolean(data.enabled);
+      disableButton.disabled = !data.enabled;
+      if (data.last_error) {
+        showResult(data.last_error, true);
+      }
+    }
+
+    function showResult(message, isError) {
+      if (!result) {
+        return;
+      }
+      clear(result);
+      result.hidden = false;
+      result.className = isError ? "notice error" : "notice ok";
+      var paragraph = document.createElement("p");
+      paragraph.textContent = message;
+      result.appendChild(paragraph);
+    }
+
+    function load() {
+      fetch("/api/v1/network", { credentials: "same-origin" })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("读取局域网状态失败");
+          }
+          return response.json();
+        })
+        .then(render)
+        .catch(function (error) {
+          showResult(error.message, true);
+        });
+    }
+
+    enableButton.addEventListener("click", function () {
+      var port = Number(portInput.value);
+      enableButton.disabled = true;
+      fetch("/api/v1/network/enable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify({ lan_port: port }),
+        credentials: "same-origin",
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (outcome) {
+          if (!outcome.ok) {
+            throw new Error(
+              outcome.data && outcome.data.error
+                ? outcome.data.error.message
+                : "开启局域网失败"
+            );
+          }
+          render(outcome.data);
+          showResult(
+            "局域网已开启；请把访问码和访问地址告诉可信的局域网设备。",
+            false
+          );
+        })
+        .catch(function (error) {
+          showResult(error.message, true);
+          enableButton.disabled = false;
+        });
+    });
+
+    disableButton.addEventListener("click", function () {
+      disableButton.disabled = true;
+      fetch("/api/v1/network/disable", {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrfToken },
+        credentials: "same-origin",
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (outcome) {
+          if (!outcome.ok) {
+            throw new Error(
+              outcome.data && outcome.data.error
+                ? outcome.data.error.message
+                : "关闭局域网失败"
+            );
+          }
+          render(outcome.data);
+          showResult("局域网已关闭，全部局域网会话已失效。", false);
+        })
+        .catch(function (error) {
+          showResult(error.message, true);
+          disableButton.disabled = false;
+        });
+    });
+
+    load();
+  }
+
+  initNotices();
+  initLanLogout();
 })();

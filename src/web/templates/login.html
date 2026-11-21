@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>局域网登录 · TextMind</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <h1>TextMind 局域网登录</h1>
+    <p class="muted">请输入主机 Local 应用设置页显示的临时访问码。关闭局域网或重启主机后访问码失效。</p>
+    {% if error %}
+    <div class="notice error">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/lan/login" class="login-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label class="field">
+        <span>访问码</span>
+        <input type="password" name="access_code" required
+               autocomplete="off" autofocus>
+      </label>
+      <button type="submit" class="primary">登录</button>
+    </form>
+    <div class="notice warn">当前为 HTTP 明文连接，访问码和数据不加密；请只在可信网络使用，不要通过公网访问。</div>
+  </main>
+</body>
+</html>

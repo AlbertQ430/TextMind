@@ -71,8 +71,18 @@ def build_snapshot(context: AppContext) -> dict:
     return payload
 
 
-async def event_stream(request: Request, context: AppContext):
-    """先发送 snapshot，再分别推送队列/任务变化和心跳。"""
+async def event_stream(
+    request: Request,
+    context: AppContext,
+    *,
+    still_valid=None,
+    expired_reason: str = "session_expired",
+):
+    """先发送 snapshot，再分别推送队列/任务变化和心跳。
+
+    `still_valid` 在每轮询时检查；返回 False 时发送 `session.expired`
+    并结束流（LAN 会话过期或 LAN 关闭）。
+    """
     initial = _task_payload(context)
     snapshot = dict(initial)
     snapshot["generated_at"] = datetime.now(timezone.utc).isoformat()
@@ -90,6 +100,9 @@ async def event_stream(request: Request, context: AppContext):
     while True:
         await asyncio.sleep(poll_interval)
         if await request.is_disconnected():
+            break
+        if still_valid is not None and not still_valid():
+            yield format_event("session.expired", {"reason": expired_reason})
             break
 
         payload = _task_payload(context)

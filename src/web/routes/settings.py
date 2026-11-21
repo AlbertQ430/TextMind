@@ -83,7 +83,8 @@ async def put_settings(request: Request) -> dict:
         raise ApiError(
             409,
             "SETTINGS_READ_ONLY",
-            "网络字段由服务端保留，本接口不能修改；局域网开关由后续任务实现",
+            "网络字段由服务端保留；局域网请通过 "
+            "/api/v1/network/enable 或 /api/v1/network/disable 管理",
         )
 
     try:

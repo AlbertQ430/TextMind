@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """启动 TextMind 本地应用。
 
-启动前依次检查核心依赖、创建运行目录，然后只监听 127.0.0.1。
-本任务不打开浏览器、不启用局域网监听、不下载模型或数据集。
+启动前依次检查核心依赖、创建运行目录，然后监听 127.0.0.1。
+若设置中 lan_enabled=true，则用同一 AppContext 自动恢复局域网监听并生成
+新的访问码；LAN 启动失败只警告，不阻止 Local App。
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ for extra_path in (SRC_DIR, SCRIPTS_DIR):
 import check_env  # noqa: E402  (依赖上面的 sys.path 调整)
 from paths import ensure_app_dirs  # noqa: E402
 
-from web.app import DEFAULT_PORT, LOCAL_HOST, APP_VERSION  # noqa: E402
+from web.app import DEFAULT_PORT, LOCAL_HOST, APP_VERSION, create_app  # noqa: E402
 
 
 def is_port_available(host: str, port: int) -> bool:
@@ -36,6 +37,33 @@ def is_port_available(host: str, port: int) -> bool:
         except OSError:
             return False
     return True
+
+
+def _restore_lan(context, controller) -> None:
+    from resources.settings import SettingsError
+    from runtime.network import NetworkError
+
+    try:
+        settings = context.settings_store.load()
+    except SettingsError as exc:
+        print(
+            f"[警告] 无法读取设置文件，局域网不会自动恢复：{exc}",
+            file=sys.stderr,
+        )
+        return
+    if not settings.network.lan_enabled:
+        return
+    try:
+        status = controller.enable(settings.network.lan_port)
+    except NetworkError as exc:
+        print(
+            f"[警告] 局域网自动启动失败，Local App 继续运行：{exc}",
+            file=sys.stderr,
+        )
+        return
+    addresses = "、".join(status["addresses"]) or "未检测到非回环 IPv4 地址"
+    print(f"[信息] 已恢复局域网访问：{addresses}")
+    print("[信息] 局域网访问码请在 Local 设置页的“局域网访问”中查看。")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -72,21 +100,33 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"[信息] TextMind {APP_VERSION} 启动中：http://{LOCAL_HOST}:{args.port}/plans")
 
-    import uvicorn  # 延迟导入，环境检查失败时不加载服务器
+    from runtime.network import NetworkController  # noqa: E402
+    from web.context import build_default_context  # noqa: E402
 
+    context = build_default_context()
+    controller = NetworkController(
+        app_factory=lambda **kwargs: create_app(context, **kwargs),
+        settings_store=context.settings_store,
+        session_store=context.session_store,
+        local_port=args.port,
+    )
+    # 先启动共享 AppContext/TaskService，再恢复 LAN listener。
+    context.start()
     try:
-        uvicorn.run(
-            "web.app:create_app",
-            factory=True,
-            host=LOCAL_HOST,
-            port=args.port,
-            app_dir=str(SRC_DIR),
-        )
+        _restore_lan(context, controller)
+        app = create_app(context, mode="local", network=controller)
+
+        import uvicorn  # 延迟导入，环境检查失败时不加载服务器
+
+        uvicorn.run(app, host=LOCAL_HOST, port=args.port, log_level="info")
     except SystemExit:
         raise
     except OSError as exc:
         print(f"[错误] 服务启动失败：{exc}", file=sys.stderr)
         return 1
+    finally:
+        controller.shutdown()
+        context.stop()
     return 0
 
 

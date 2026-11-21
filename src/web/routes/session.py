@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from web.session import SESSION_SCOPE_LAN_PREAUTH
+
 router = APIRouter(prefix="/api/v1")
 
 
@@ -15,6 +17,6 @@ def read_session(request: Request) -> dict:
             "session_id": session.session_id,
             "csrf_token": session.csrf_token,
             "scope": session.scope,
-            "authenticated": True,
+            "authenticated": session.scope != SESSION_SCOPE_LAN_PREAUTH,
         }
     }

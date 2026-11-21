@@ -195,6 +195,23 @@ class SettingsApiTests(SettingsWebTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["error"]["code"], "SETTINGS_READ_ONLY")
 
+    def test_put_network_message_points_to_network_api(self) -> None:
+        client, token = self.build_client()
+        response = client.put(
+            "/api/v1/settings",
+            json={
+                "model_root": None,
+                "duretrieval_root": None,
+                "device": "auto",
+                "network": {"lan_enabled": True},
+            },
+            headers={"X-CSRF-Token": token},
+        )
+        self.assertEqual(response.status_code, 409)
+        message = response.json()["error"]["message"]
+        self.assertIn("/api/v1/network/disable", message)
+        self.assertNotIn("后续任务", message)
+
     def test_put_missing_or_invalid_fields(self) -> None:
         client, token = self.build_client()
         response = client.put(
@@ -379,8 +396,9 @@ class ResourceGateTests(SettingsWebTestCase):
         self.assertIn("资源与设备", page.text)
         self.assertIn("数据集", page.text)
         self.assertIn("计算设备", page.text)
-        self.assertIn("局域网", page.text)
-        self.assertIn("后续任务", page.text)
+        self.assertIn("局域网访问", page.text)
+        self.assertIn("访问码", page.text)
+        self.assertIn("HTTP", page.text)
 
     def test_submit_without_model_returns_409(self) -> None:
         repository = TaskRepository(self.root / "tasks.db")

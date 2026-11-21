@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from records.catalog import CatalogError
@@ -33,6 +33,10 @@ def _result_catalog(request: Request):
 def _render(request: Request, template_name: str, *, status_code: int = 200, **context):
     templates = request.app.state.templates
     context.setdefault("csrf_token", request.state.session.csrf_token)
+    context.setdefault(
+        "is_local",
+        getattr(request.app.state, "mode", "local") == "local",
+    )
     return templates.TemplateResponse(
         request, template_name, context, status_code=status_code
     )
@@ -225,6 +229,8 @@ def compare_page(request: Request, runs: str = ""):
 
 @router.get("/settings")
 def settings_page(request: Request):
+    if getattr(request.app.state, "mode", "local") != "local":
+        raise HTTPException(404, "页面不存在")
     context = request.app.state.context
     store = getattr(context, "settings_store", None)
     checker = getattr(context, "resource_checker", None)

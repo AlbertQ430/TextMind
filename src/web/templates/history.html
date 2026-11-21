@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% if is_local %}
 <section class="panel">
   <h2>导入单个 JSON</h2>
   <form id="import-form" class="import-form">
@@ -9,6 +10,7 @@
   </form>
   <div id="import-result" class="notice" hidden></div>
 </section>
+{% endif %}
 
 <section class="panel">
   <div class="toolbar">

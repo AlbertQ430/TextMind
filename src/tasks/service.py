@@ -236,6 +236,12 @@ class TaskService:
     def list_tasks(self) -> list[TaskRecord]:
         return self._repository.list_tasks()
 
+    def list_notices(self) -> list:
+        return self._repository.list_notices()
+
+    def ack_notice(self, notice_id: int) -> bool:
+        return self._repository.ack_notice(notice_id)
+
     def cancel(self, run_id: str) -> None:
         """取消任务；与终态发布共用同一互斥边界。"""
         with self._publish_lock:

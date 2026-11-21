@@ -121,7 +121,7 @@ class SessionCookieTests(unittest.TestCase):
         self.assertEqual(response.headers.get("cache-control"), "no-store")
         session = response.json()["session"]
         self.assertTrue(session["csrf_token"])
-        self.assertEqual(session["scope"], "local")
+        self.assertEqual(session["scope"], "local_authenticated")
         self.assertTrue(session["authenticated"])
 
     def test_cookie_does_not_contain_token(self) -> None:

@@ -117,9 +117,25 @@
   </div>
 </section>
 
-<section class="panel">
-  <h2>局域网</h2>
-  <p class="muted">局域网开关与访问码由后续任务实现，本页不提供伪造开关。端口配置：本机 {{ settings.network.local_port }}，局域网 {{ settings.network.lan_port }}。</p>
+<section class="panel" id="network-panel">
+  <h2>局域网访问</h2>
+  <dl class="facts">
+    <dt>状态</dt><dd id="network-state">—</dd>
+    <dt>端口</dt><dd id="network-port">—</dd>
+    <dt>访问地址</dt><dd id="network-addresses">—</dd>
+    <dt>访问码</dt><dd id="network-code" class="mono">—</dd>
+  </dl>
+  <div class="import-form">
+    <label class="field">
+      <span>局域网端口</span>
+      <input type="number" id="lan-port" min="1" max="65535"
+             value="{{ settings.network.lan_port }}">
+    </label>
+    <button type="button" class="primary" id="network-enable">开启局域网</button>
+    <button type="button" id="network-disable">关闭局域网</button>
+  </div>
+  <div id="network-result" class="notice" hidden></div>
+  <p class="muted">局域网使用 HTTP 明文传输，访问码和数据不加密；请只在可信网络使用。访问码只在 Local App 显示，关闭或重启后失效。</p>
 </section>
 {% endif %}
 {% endblock %}

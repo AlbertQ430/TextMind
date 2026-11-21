@@ -31,6 +31,7 @@ class AppContext:
     import_service: Any | None = None
     settings_store: Any | None = None
     resource_checker: Any | None = None
+    network_controller: Any | None = None
     sse_poll_interval: float = 0.5
     sse_heartbeat_interval: float = 15.0
     started: bool = False

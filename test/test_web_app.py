@@ -206,7 +206,7 @@ class PageTests(unittest.TestCase):
         settings = self.client.get("/settings")
         self.assertEqual(settings.status_code, 200)
         self.assertIn("资源与设备", settings.text)
-        self.assertIn("后续任务", settings.text)
+        self.assertIn("局域网访问", settings.text)
         self.assertNotIn("P@1", settings.text)
 
     def test_static_assets_are_local(self) -> None:
