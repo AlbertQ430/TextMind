@@ -1,4 +1,8 @@
-"""运行记录模型、Schema 与解析接口。"""
+"""运行记录模型与 Schema。
+
+结果目录、图表与发布器位于 `records.repository`、`records.charts`、
+`records.publisher`，按需导入，避免与 `experiment` 形成循环依赖。
+"""
 
 from records.schema import (
     FORMAT_VERSION,

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 import threading
 from datetime import datetime
 from typing import Any, Callable, Protocol
@@ -16,6 +17,7 @@ from experiment.executor import ExecutionResult, ExperimentExecutor, RunCancelle
 from experiment.plans import PlanCatalog, PlanDefinition, RunVariant
 from experiment.stages import StageEvent
 from paths import INSTANCE_LOCK_PATH
+from records.repository import ResultConflictError
 from tasks.locking import InstanceLock
 from tasks.models import (
     NOTICE_QUEUE_CANCELLED_ON_RESTART,
@@ -94,6 +96,7 @@ class TaskService:
         executor: ExperimentExecutor,
         publisher: TerminalPublisher,
         *,
+        reconciler: Any | None = None,
         lock: InstanceLock | None = None,
         poll_interval: float = 0.05,
         join_timeout: float = 5.0,
@@ -103,6 +106,7 @@ class TaskService:
         self._repository = repository
         self._executor = executor
         self._publisher = publisher
+        self._reconciler = reconciler
         self._lock = lock
         self._poll_interval = poll_interval
         self._join_timeout = join_timeout
@@ -275,14 +279,114 @@ class TaskService:
         self._repository.delete_all_pending_with_notice(
             NOTICE_QUEUE_CANCELLED_ON_RESTART
         )
-        self._interrupt_tasks("服务重启，任务中断", "SERVICE_INTERRUPTED")
-
-    def _interrupt_tasks(self, reason: str, error_summary: str) -> None:
         for task in self._repository.active_tasks():
             with self._publish_lock:
                 current = self._repository.get(task.run_id)
-                if current is not None:
-                    self._interrupt_one(current, reason, error_summary)
+                if current is None or current.is_terminal:
+                    continue
+                if self._reconciler is None:
+                    self._interrupt_or_force(
+                        current, "服务重启，任务中断", "SERVICE_INTERRUPTED"
+                    )
+                    continue
+                try:
+                    recovered = self._reconciler.reconcile(current)
+                except ResultConflictError as exc:
+                    # 冲突：发布基于任务快照的最小 Interrupted 记录，保留原候选。
+                    self._interrupt_or_force(
+                        current,
+                        "服务重启，任务中断",
+                        f"恢复冲突: {exc}",
+                    )
+                    continue
+                except BaseException as exc:
+                    # 损坏或身份不符：不覆盖现有文件，但 SQLite 必须脱离活跃。
+                    self._force_terminal(
+                        current.run_id,
+                        TaskStatus.INTERRUPTED,
+                        self._now(),
+                        f"恢复对齐失败: {exc}",
+                    )
+                    continue
+                if recovered is not None:
+                    self._force_terminal(
+                        current.run_id,
+                        recovered.status,
+                        recovered.ended_at,
+                        None,
+                    )
+                    continue
+                self._interrupt_or_force(
+                    current, "服务重启，任务中断", "SERVICE_INTERRUPTED"
+                )
+
+    def _interrupt_or_force(
+        self, task: TaskRecord, reason: str, error_summary: str
+    ) -> None:
+        """发布最小 Interrupted 记录；发布失败时只强制 SQLite 脱离活跃。"""
+        try:
+            self._interrupt_one(task, reason, error_summary)
+        except BaseException as exc:
+            self._force_terminal(
+                task.run_id,
+                TaskStatus.INTERRUPTED,
+                self._now(),
+                f"{error_summary}: {exc}",
+            )
+
+    def _force_terminal(
+        self,
+        run_id: str,
+        status: TaskStatus,
+        ended_at: datetime,
+        error_summary: str | None,
+    ) -> None:
+        """恢复专用对齐：活跃任务直接采用记录终态，不受运行时状态机限制。
+
+        仅用于启动恢复；正常运行时仍由 `transition` 校验状态机。
+        """
+        if status not in (
+            TaskStatus.COMPLETED,
+            TaskStatus.FAILED,
+            TaskStatus.CANCELLED,
+            TaskStatus.INTERRUPTED,
+        ):
+            raise ValueError(f"只能对齐到终态，实际 {status.value}")
+        connection = sqlite3.connect(
+            self._repository.path, timeout=10.0, isolation_level=None
+        )
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
+                """
+                UPDATE tasks
+                SET status = ?, ended_at = ?, current_stage = NULL,
+                    error_summary = ?
+                WHERE run_id = ? AND status IN (?, ?, ?)
+                """,
+                (
+                    status.value,
+                    ended_at.isoformat(),
+                    error_summary,
+                    run_id,
+                    TaskStatus.PREPARING.value,
+                    TaskStatus.RUNNING.value,
+                    TaskStatus.CANCELLING.value,
+                ),
+            )
+            if cursor.rowcount != 1:
+                connection.execute("ROLLBACK")
+                return
+            connection.execute("COMMIT")
+        except BaseException:
+            try:
+                connection.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            connection.close()
 
     def _interrupt_one(
         self, task: TaskRecord, reason: str, error_summary: str
