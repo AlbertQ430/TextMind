@@ -81,12 +81,7 @@ def _find_python(explicit: str | None) -> tuple[str | None, str]:
         if version == REQUIRED_PYTHON:
             return resolved, source
 
-    hint = (
-        "需要 Python 3.11 解释器来创建 .venv。可用以下任一方式指定：\n"
-        "  TEXTMIND_PYTHON=/path/to/python3.11 python3 scripts/install.py\n"
-        "  python3 scripts/install.py --python /path/to/python3.11\n"
-        "已检查：\n  " + "\n  ".join(checked)
-    )
+    hint = missing_python_hint() + "\n已检查：\n  " + "\n  ".join(checked)
     return None, hint
 
 
@@ -128,6 +123,18 @@ def remove_venv_command(platform_name: str | None = None) -> str:
 
 def _venv_python() -> Path:
     return venv_python()
+
+
+def pip_environment(environ: dict[str, str] | None = None) -> dict[str, str]:
+    """返回调用 pip 的环境：强制 UTF-8 模式。
+
+    requirements.lock 是无 BOM 的 UTF-8 且含中文注释；中文 Windows 的 pip 会按
+    locale（cp936）解码并抛出 UnicodeDecodeError。UTF-8 模式让子进程按 UTF-8
+    读取该文件，不改动锁定文件本身。
+    """
+    env = dict(environ if environ is not None else os.environ)
+    env["PYTHONUTF8"] = "1"
+    return env
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -184,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
                 str(LOCK_FILE),
             ],
             check=True,
+            env=pip_environment(),
         )
     except subprocess.CalledProcessError as exc:
         print(

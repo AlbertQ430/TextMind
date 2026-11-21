@@ -440,10 +440,12 @@ class TaskService:
                 self._record_worker_error(exc)
 
     def _record_worker_error(self, exc: BaseException) -> None:
-        self._last_worker_error = exc
+        # 先写日志再暴露状态：测试与监控以 last_worker_error 作为“已记录”信号，
+        # 反序会让观察到状态的调用方错过日志。
         logging.getLogger(__name__).error(
             "任务工作线程未预期异常: %s", exc, exc_info=exc
         )
+        self._last_worker_error = exc
 
     def _execute_task(self, task: TaskRecord) -> None:
         cancel_event = threading.Event()

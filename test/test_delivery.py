@@ -314,6 +314,34 @@ class PlatformCommandTests(unittest.TestCase):
         self.assertIn("Scripts", stderr.getvalue())
         self.assertNotIn(".venv/bin/python", stderr.getvalue())
 
+    def test_find_python_hint_uses_platform_command(self) -> None:
+        import install
+
+        with mock.patch.object(
+            install, "_python_version", return_value=None
+        ), mock.patch.object(sys, "platform", "win32"):
+            python, hint = install._find_python("C:/missing/python3.11.exe")
+        self.assertIsNone(python)
+        self.assertIn("py -3.11 scripts\\install.py", hint)
+        self.assertNotIn("TEXTMIND_PYTHON=", hint)
+        self.assertIn("已检查", hint)
+
+        with mock.patch.object(
+            install, "_python_version", return_value=None
+        ), mock.patch.object(sys, "platform", "darwin"):
+            python, hint = install._find_python("C:/missing/python3.11.exe")
+        self.assertIsNone(python)
+        self.assertIn("TEXTMIND_PYTHON=", hint)
+        self.assertIn("python3 scripts/install.py", hint)
+
+    def test_pip_environment_forces_utf8_mode(self) -> None:
+        import install
+
+        env = install.pip_environment({"PATH": "C:\\bin"})
+        self.assertEqual(env["PYTHONUTF8"], "1")
+        self.assertEqual(env["PATH"], "C:\\bin")
+        self.assertIsNot(env, os.environ)
+
 
 class StartupErrorTests(unittest.TestCase):
     def test_instance_lock_error_is_single_line(self) -> None:

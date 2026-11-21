@@ -16,6 +16,19 @@ if str(SRC_DIR) not in sys.path:
 
 from experiment.plans import load_plan_catalog  # noqa: E402
 from experiment.timing import TIMING_FIELDS  # noqa: E402
+
+
+def _symlink_available() -> bool:
+    """Windows 默认账户没有创建符号链接的特权，相关用例按能力跳过。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / "target.txt"
+        target.write_text("x", encoding="utf-8")
+        link = Path(tmp) / "link.txt"
+        try:
+            link.symlink_to(target)
+        except OSError:
+            return False
+    return True
 from records.catalog import (  # noqa: E402
     ChartNotFound,
     ChartUnavailable,
@@ -163,6 +176,7 @@ class ScanTests(CatalogTestCase):
         self.assertEqual(scan.unavailable[0].run_id, "run-utf8")
         self.assertEqual(scan.unavailable[0].code, "RUN_RECORD_INVALID")
 
+    @unittest.skipUnless(_symlink_available(), "当前环境不允许创建符号链接")
     def test_run_directory_symlink_escape(self) -> None:
         outside = self.root / "outside-run"
         outside.mkdir()
@@ -176,6 +190,7 @@ class ScanTests(CatalogTestCase):
         self.assertEqual(scan.records, [])
         self.assertEqual(scan.unavailable[0].code, "RUN_RECORD_UNSAFE")
 
+    @unittest.skipUnless(_symlink_available(), "当前环境不允许创建符号链接")
     def test_run_json_symlink_escape(self) -> None:
         outside = self.root / "outside.json"
         outside.write_text(
@@ -328,6 +343,7 @@ class ChartTests(CatalogTestCase):
             with self.assertRaises(ChartUnavailable):
                 self.catalog.chart_file(entry, 0)
 
+    @unittest.skipUnless(_symlink_available(), "当前环境不允许创建符号链接")
     def test_symlink_escape_rejected(self) -> None:
         outside = self.root / "outside.png"
         outside.write_bytes(b"secret")

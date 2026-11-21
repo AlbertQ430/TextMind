@@ -37,5 +37,25 @@ class TestShortLabel(unittest.TestCase):
         )
 
 
+class TestChartFonts(unittest.TestCase):
+    def test_cjk_font_candidates_cover_windows(self):
+        from records import charts
+
+        families = charts.CJK_FONT_FAMILIES
+        self.assertIn("Microsoft YaHei", families)
+        self.assertIn("SimHei", families)
+        self.assertEqual(families[-1], "DejaVu Sans")
+        self.assertFalse(charts.matplotlib.rcParams["axes.unicode_minus"])
+        self.assertEqual(charts.matplotlib.rcParams["font.sans-serif"], families)
+
+    def test_compare_reuses_chart_font_families(self):
+        from records import charts, compare
+
+        self.assertEqual(
+            compare.matplotlib.rcParams["font.sans-serif"],
+            charts.CJK_FONT_FAMILIES,
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

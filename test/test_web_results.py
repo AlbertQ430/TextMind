@@ -33,6 +33,19 @@ CATALOG = load_plan_catalog()
 REFERENCE_RUN_ID = "preset-duretrieval-hybrid-bge-small-prefix-equal"
 
 
+def _symlink_available() -> bool:
+    """Windows 默认账户没有创建符号链接的特权，相关用例按能力跳过。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / "target.txt"
+        target.write_text("x", encoding="utf-8")
+        link = Path(tmp) / "link.txt"
+        try:
+            link.symlink_to(target)
+        except OSError:
+            return False
+    return True
+
+
 class FakeTaskService:
     def start(self) -> None:
         return None
@@ -368,6 +381,7 @@ class ChartApiTests(ResultWebTestCase):
             response.json()["error"]["code"], "CHART_UNAVAILABLE"
         )
 
+    @unittest.skipUnless(_symlink_available(), "当前环境不允许创建符号链接")
     def test_chart_symlink_escape(self) -> None:
         outside = Path(self._tmp.name) / "outside.png"
         outside.write_bytes(b"secret")

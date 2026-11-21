@@ -16,12 +16,9 @@ if "XDG_CACHE_HOME" not in os.environ:
 
 import matplotlib
 
-matplotlib.rcParams["font.sans-serif"] = [
-    "PingFang SC",
-    "Arial Unicode MS",
-    "Heiti TC",
-    "DejaVu Sans",
-]
+from records.charts import CJK_FONT_FAMILIES
+
+matplotlib.rcParams["font.sans-serif"] = CJK_FONT_FAMILIES
 matplotlib.rcParams["axes.unicode_minus"] = False
 
 import numpy as np  # noqa: E402

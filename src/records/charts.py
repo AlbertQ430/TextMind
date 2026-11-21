@@ -20,12 +20,16 @@ if "XDG_CACHE_HOME" not in os.environ:
 
 import matplotlib
 
-matplotlib.rcParams["font.sans-serif"] = [
+CJK_FONT_FAMILIES: list[str] = [
+    "Microsoft YaHei",
+    "SimHei",
     "PingFang SC",
     "Arial Unicode MS",
     "Heiti TC",
+    "Noto Sans CJK SC",
     "DejaVu Sans",
 ]
+matplotlib.rcParams["font.sans-serif"] = CJK_FONT_FAMILIES
 matplotlib.rcParams["axes.unicode_minus"] = False
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg  # noqa: E402

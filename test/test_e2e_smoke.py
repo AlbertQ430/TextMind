@@ -113,6 +113,11 @@ class ReleaseSmokeTests(unittest.TestCase):
         )
         cls.port = _free_port()
         cls.base = f"http://127.0.0.1:{cls.port}"
+        # Windows 管道缓冲区很小，服务日志写满 PIPE 后会阻塞进程；写入文件避免假死。
+        cls.out_path = cls.root / "server.out.log"
+        cls.err_path = cls.root / "server.err.log"
+        cls._out = cls.out_path.open("w", encoding="utf-8", errors="replace")
+        cls._err = cls.err_path.open("w", encoding="utf-8", errors="replace")
         cls.process = subprocess.Popen(
             [
                 sys.executable,
@@ -122,8 +127,8 @@ class ReleaseSmokeTests(unittest.TestCase):
             ],
             cwd=str(cls.release_root),
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=cls._out,
+            stderr=cls._err,
             text=True,
         )
         cls.client = _Client(cls.base)
@@ -131,17 +136,17 @@ class ReleaseSmokeTests(unittest.TestCase):
         last_error: Exception | None = None
         while time.monotonic() < deadline:
             if cls.process.poll() is not None:
-                stdout, stderr = cls.process.communicate(timeout=5)
+                cls._close_outputs()
                 raise RuntimeError(
                     "服务提前退出:\n"
-                    + (stdout or "")[-2000:]
+                    + cls._read_output(cls.out_path)
                     + "\n"
-                    + (stderr or "")[-2000:]
+                    + cls._read_output(cls.err_path)
                 )
             try:
                 if cls.client.status("/api/v1/health") == 200:
                     break
-            except (urllib.error.URLError, ConnectionError) as exc:
+            except (urllib.error.URLError, ConnectionError, TimeoutError) as exc:
                 last_error = exc
             time.sleep(0.3)
         else:
@@ -150,6 +155,20 @@ class ReleaseSmokeTests(unittest.TestCase):
         cls.client.csrf = cls.client.get_json("/api/v1/session")["session"][
             "csrf_token"
         ]
+
+    @staticmethod
+    def _read_output(path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")[-2000:]
+        except OSError:
+            return ""
+
+    @classmethod
+    def _close_outputs(cls) -> None:
+        for name in ("_out", "_err"):
+            handle = getattr(cls, name, None)
+            if handle is not None and not handle.closed:
+                handle.close()
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -162,11 +181,16 @@ class ReleaseSmokeTests(unittest.TestCase):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=5)
-            if process.stdout is not None:
-                process.stdout.close()
-            if process.stderr is not None:
-                process.stderr.close()
-        cls._tmp.cleanup()
+        cls._close_outputs()
+        # Windows 在子进程退出后可能短暂占用锁文件，重试几次再清理。
+        for attempt in range(5):
+            try:
+                cls._tmp.cleanup()
+                return
+            except OSError:
+                if attempt == 4:
+                    return
+                time.sleep(0.2)
 
     def test_health_and_pages_from_release(self) -> None:
         self.assertEqual(self.client.get_json("/api/v1/health")["version"], "0.1.0")

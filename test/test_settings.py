@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -225,6 +226,8 @@ class FingerprintTests(SettingsStoreTestCase):
         self.store.save(Settings(device="cpu"))
         first = self.store.fingerprint()
         self.assertNotEqual(first, "missing")
+        # Windows 的文件时间戳分辨率可能低于两次相邻保存的间隔。
+        time.sleep(0.02)
         self.store.save(Settings(device="mps"))
         self.assertNotEqual(first, self.store.fingerprint())
 
