@@ -6,6 +6,8 @@ __pycache__/
 *.pyc
 # 忽略派生的 embedding 缓存
 data/processed/
+# 忽略用户自行准备的本地模型
+data/models/
 
 # 忽略项目虚拟环境
 .venv/
