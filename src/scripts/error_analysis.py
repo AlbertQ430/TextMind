@@ -7,7 +7,7 @@
 - ``ranked_low``：Top-10 内有相关文档，但 Top-1 不是；
 - ``miss_top_k``：Top-10 内没有相关文档（召回失败）。
 
-输出 ``data/evaluation/error_analysis.json`` 与 ``docs/error-analysis.md``。
+输出 ``data/evaluation/error_analysis.json`` 与 ``data/evaluation/error_analysis.md``。
 案例按 query 顺序抽取，仅用于定性说明，不代表统计抽样。
 """
 
@@ -29,7 +29,6 @@ from retrieval.hybrid import HybridRetriever  # noqa: E402
 
 DATA_DIR = PROJECT_ROOT / "data" / "raw" / "duretrieval"
 RESULT_DIR = PROJECT_ROOT / "data" / "evaluation"
-DOCS_DIR = PROJECT_ROOT / "docs"
 CACHE_DIR = PROJECT_ROOT / "data" / "processed" / "embeddings"
 DEFAULT_MODEL = "BAAI/bge-small-zh-v1.5"
 DEFAULT_PREFIX = "为这个句子生成表示以用于检索相关文章："
@@ -128,7 +127,7 @@ def main(argv=None) -> int:
         "--device", choices=["auto", "mps", "cpu"], default="auto", help="Embedding 推理设备"
     )
     parser.add_argument("--output-json", default=str(RESULT_DIR / "error_analysis.json"))
-    parser.add_argument("--output-md", default=str(DOCS_DIR / "error-analysis.md"))
+    parser.add_argument("--output-md", default=str(RESULT_DIR / "error_analysis.md"))
     args = parser.parse_args(argv)
 
     dataset = load_duretrieval(

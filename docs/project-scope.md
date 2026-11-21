@@ -161,4 +161,4 @@ A 应是 B 的受限模式：底层尽量共用实验方案、执行和结果处
 
 ## 12. 当前阶段工作
 
-核心产品需求与 MVP 边界已确定，SRS v0.2 已冻结（见 [SRS](requirements/SRS.md) 和 [评审记录](requirements/review-v0.1.md)）。[SDS v0.1](design/SDS.md) 已通过设计评审，下一步进入开发计划、依赖锁定和实现验证。
+核心产品需求与 MVP 边界已确定，SRS v0.2 已冻结（见 [SRS](requirements/SRS.md) 和 [已确认决策](requirements/confirmed-decisions.md)）。[SDS v0.1](design/SDS.md) 已通过设计评审，下一步进入开发计划、依赖锁定和实现验证。

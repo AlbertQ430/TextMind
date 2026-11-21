@@ -47,10 +47,10 @@ TextMind 已完成一轮文本检索算法实验，相关实验代码与成果�
 - **数据集**：英文 SciFact、中文 DuRetrieval（C-MTEB 子集）。
 - **Embedding 模型**：Qwen3-Embedding-0.6B、BGE-M3、bge-small-zh-v1.5、all-MiniLM-L6-v2。
 - **评价指标**：Precision@K、Recall@K、MRR、NDCG@K，以及分阶段耗时。
-- **实验产物**：结构化 JSON 结果、汇总表、图表和错误分析材料。
-- **运行环境**：已验证 Apple Silicon MPS 上的模型加载与向量计算。
+- **实验产物**：结构化 JSON 结果、汇总表和图表。
+- **开发环境**：以 SDS 和当前环境检查脚本的结果为准。
 
-实验结论、数据集信息和验证记录属于已有技术资料，不代表软件 MVP 已经实现相应 GUI 功能。
+实验结论和数据集信息属于已有技术资料，不代表软件 MVP 已经实现相应 GUI 功能。
 
 ## 实验结果概览
 
@@ -67,21 +67,21 @@ TextMind 已完成一轮文本检索算法实验，相关实验代码与成果�
 | SciFact test | Dense：Qwen3-Embedding-0.6B（有前缀） | 0.5733 | 0.7003 | 0.9567 | 0.6708 |
 | SciFact test | Hybrid：BM25 + Qwen3（有前缀，RRF） | 0.6033 | 0.7165 | 0.9567 | 0.6896 |
 
-DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完成，不应解读为独立测试集上的泛化结论。完整指标与耗时汇总见 [实验汇总表](data/evaluation/summary.md)，环境验证见 [技术验证记录](docs/technical-validation.md)；详细错误分析见 [DuRetrieval 错误分析](docs/error-analysis.md)。
+DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完成，不应解读为独立测试集上的泛化结论。完整指标与耗时汇总见 [实验汇总表](data/evaluation/summary.md)，开发环境与运行约束见 [SDS](docs/design/SDS.md)。
 
 ## 文档导航
 
 - [当前产品范围与 MVP](docs/project-scope.md)
 - [已确认的产品决策](docs/requirements/confirmed-decisions.md)
 - [软件需求规格说明书（SRS v0.2，冻结）](docs/requirements/SRS.md)
-- [SRS 首轮需求评审记录](docs/requirements/review-v0.1.md)
 - [SRS / 技术设计待处理事项](docs/requirements/open-questions.md)
 - [软件设计说明书（SDS v0.1 评审通过版）](docs/design/SDS.md)
 - [SRS v0.2 至 SDS 需求追溯矩阵](docs/design/srs-v0.2-traceability.md)
+- [Codex / DSH 开发协作规则](AGENTS.md)
+- [开发任务索引](docs/development/README.md)
+- [开发任务模板](docs/development/TEMPLATE.md)
 - [检索实验与执行约定](docs/requirements/retrieval-lab.md)
 - [数据集调研记录](docs/datasets.md)
-- [技术验证记录](docs/technical-validation.md)
-- [DuRetrieval 错误分析](docs/error-analysis.md)
 
 ## 当前阶段说明
 

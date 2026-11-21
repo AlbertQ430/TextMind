@@ -1,6 +1,6 @@
 # TextMind SRS 与技术设计待处理事项
 
-> 核心产品方向与 MVP 范围已确定，SRS v0.2 已冻结。SRS 见 [SRS.md](SRS.md)，SDS 草案见 [SDS](../design/SDS.md)，首轮评审与决策记录见 [review-v0.1.md](review-v0.1.md)。本文件只跟踪设计复核和实现验证事项，不重新开启已确认的产品方向讨论。
+> 核心产品方向与 MVP 范围已确定，SRS v0.2 已冻结。SRS 见 [SRS.md](SRS.md)，SDS 见 [SDS](../design/SDS.md)，最终决策见 [confirmed-decisions.md](confirmed-decisions.md)。本文件只跟踪实现验证事项，不重新开启已确认的产品方向讨论。
 
 ## 1. 需求评审与方案映射
 
@@ -65,6 +65,6 @@
 
 ## 6. 阶段说明
 
-- SRS v0.2 已按 [评审决策](review-v0.1.md) 完成修订并冻结。
+- SRS v0.2 已按 [已确认决策](confirmed-decisions.md) 完成修订并冻结。
 - SDS v0.1 已通过设计评审，当前进入依赖验证、开发计划和实现阶段。
 - 本文件中的技术事项不代表技术方案已经选定；具体实现应在设计阶段结合现有代码和平台约束确定。

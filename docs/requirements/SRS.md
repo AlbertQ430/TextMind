@@ -10,7 +10,7 @@
 >
 > 依据：课程实验成果、`docs/project-scope.md`、`docs/requirements/confirmed-decisions.md`、`docs/requirements/retrieval-lab.md`
 >
-> 评审决策记录：[review-v0.1.md](review-v0.1.md)
+> 最终产品决策：[confirmed-decisions.md](confirmed-decisions.md)
 >
 > 本文描述产品必须提供的行为与质量要求，不预先限定 Web 框架、前端框架或具体数据库等技术实现。
 
