@@ -40,15 +40,15 @@
 - 明确 DuRetrieval 的获取说明、目录约定和完整性检查规则；确保使用 C-MTEB 子集及约定的 dev split。**已完成：来源、commit 与 dev 约定记入 `docs/datasets.md`、NOTICE.md 和资源检查。**
 - 明确统一模型根目录下各预设模型的子目录命名和必要文件检查规则。**已完成（T-009）。**
 - 根据现有实验环境核对支持的 Python 版本、依赖锁定文件和安装脚本行为。**已完成：Python 3.11、requirements.lock、scripts/install.py。**
-- 确认 Windows 与 macOS 的依赖安装、环境检查和启动脚本入口及 README 使用说明。**已完成入口与 README（start.command / start.bat）；Windows 实机验证待 T-011 人工验收。**
+- 确认 Windows 与 macOS 的依赖安装、环境检查和启动脚本入口及 README 使用说明。**已完成：start.command / start.bat 入口、README 与 Windows 11 实机验证。**
 
 ## 4. SDS 复核与实现验证
 
 - 评审 SDS 的 FastAPI、Uvicorn、Jinja2、原生前端和 SQLite 选型是否符合项目交付条件。
 - 验证同进程第二 Uvicorn 监听器对 LAN 开关、会话和共享任务状态的适用性；若不可行，采用 SDS 中的重启回退方案。**已完成（T-010）：真实 Uvicorn 线程与登录/关闭验收通过。**
-- 锁定 FastAPI、Uvicorn、Jinja2、python-multipart、jsonschema 及现有科学计算依赖版本。**已完成：requirements.lock（67 项）。**
+- 锁定 FastAPI、Uvicorn、Jinja2、python-multipart、jsonschema 及现有科学计算依赖版本。**已完成：requirements.lock（68 项，含 Windows colorama）。**
 - 验证阶段边界取消在真实模型加载和批量编码下的等待时间与状态一致性。**阶段边界取消已实现并测试；真实模型长耗时场景尚无专项实机记录。**
-- 验证 Windows 与 macOS 的文件锁、原子替换、双击启动脚本和浏览器行为。**macOS 已实机验证启动入口与发布包；Windows 和浏览器人工验收待 T-011 执行。**
+- 验证 Windows 与 macOS 的文件锁、原子替换、双击启动脚本和浏览器行为。**已完成 Windows 11 与 macOS 启动、发布包和浏览器验收；Windows 符号链接用例因默认账户权限限制按能力跳过。**
 - 明确支持的浏览器及最低版本，并完成双平台验收。**矩阵固定为 Safari 17 / Edge 120；两者均已验收；Chrome/Firefox 已取消。**
 
 ## 5. 明确不纳入 MVP
@@ -66,5 +66,5 @@
 ## 6. 阶段说明
 
 - SRS v0.2 已按 [已确认决策](confirmed-decisions.md) 完成修订并冻结。
-- SDS v0.1 已通过设计评审；T-001 至 T-010 已完成，T-011 发布验收进行中（Safari 26.6 与 Edge 158 已完成，Chrome/Firefox 已取消，仅 Windows 实机验证待补充）。
+- SDS v0.1 已通过设计评审；T-001 至 T-011 已完成，Windows 11、Safari 26.6 与 Edge 158 实机验收通过，Chrome/Firefox 已取消。
 - 技术选型已按 SDS 落地；本文件用于跟踪剩余实现验收事项。

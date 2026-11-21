@@ -87,6 +87,7 @@ py -3.11 scripts\install.py
 
 - 双击入口 `start.command`（macOS）与 `start.bat`（Windows）从自身所在目录定位项目根目录，不依赖当前工作目录；缺少 `.venv` 时以非零退出码结束并提示运行 `scripts/install.py`，不自动创建虚拟环境或安装依赖。
 - 依赖版本以 `requirements.lock` 为唯一来源；安装失败时脚本返回非零退出码。
+- 如果 Windows 上 pip 长时间停在 `Using pip` 且没有网络或磁盘活动，可先执行 `set PIP_NO_CACHE_DIR=1`，再重试同一条安装命令。
 - 启动前执行核心依赖检查，检查不通过或端口被占用时阻止启动并输出错误。
 - 默认只监听 `127.0.0.1`；可在设置页按需开启局域网访问（见下文），启动脚本会按设置自动恢复；不自动打开浏览器。
 - 启动后在浏览器打开 <http://127.0.0.1:8765/>：可浏览实验中心和方案详情、提交单个变体并查看运行监控（含 SSE 实时状态）。`/history` 汇总 `results/presets`、`results/runs`、`results/imports` 三类运行记录，`/results/<run_id>` 展示单次运行的指标、14 项耗时、图表和配置，`/compare?runs=id1,id2` 在同一方案版本内比较所选记录。`/settings` 可编辑模型根目录、DuRetrieval 目录与计算设备，并查看资源与环境状态；也可在设置页开启局域网访问。
@@ -191,4 +192,4 @@ DuRetrieval 使用 dev split。其加权 RRF 参数探索也在 dev split 上完
 
 ## 当前阶段说明
 
-核心功能已实现（T-001 至 T-010 已完成并通过验收），当前处于发布验收阶段，发布状态以 [T-011 实现交接](docs/development/T-011.md) 为准。SRS v0.2 已于 2026-11-21 冻结，SDS v0.1 已于 2026-11-21 通过设计评审；Safari 26.6 与 Edge 158 人工验收已完成，Chrome/Firefox 已取消，仅 Windows 实机验证待补充。
+核心功能已实现，T-011 发布验收已完成（验收记录见 [T-011](docs/development/T-011.md)）。Windows 11 实机和 Safari 26.6、Edge 158 人工验收均已通过；Chrome/Firefox 已取消，不计入支持范围。

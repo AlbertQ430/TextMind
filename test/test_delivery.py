@@ -376,8 +376,10 @@ class StageStatementTests(unittest.TestCase):
     def test_readme_stage_matches_current_state(self) -> None:
         readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
         stage = readme[readme.index("## 当前阶段说明"):]
-        self.assertIn("Safari 26.6 与 Edge 158 人工验收已完成", stage)
-        self.assertIn("仅 Windows 实机验证待补充", stage)
+        self.assertIn("Windows 11 实机", stage)
+        self.assertIn("Safari 26.6、Edge 158", stage)
+        self.assertIn("T-011 发布验收已完成", stage)
+        self.assertNotIn("待补充", stage)
         self.assertNotIn("Safari/Chrome/Firefox", stage)
 
     def test_open_questions_stage_matches_current_state(self) -> None:
@@ -385,7 +387,9 @@ class StageStatementTests(unittest.TestCase):
             PROJECT_ROOT / "docs" / "requirements" / "open-questions.md"
         ).read_text(encoding="utf-8")
         stage = text[text.index("## 6. 阶段说明"):]
-        self.assertIn("仅 Windows 实机验证待补充", stage)
+        self.assertIn("T-001 至 T-011 已完成", stage)
+        self.assertIn("Windows 11", stage)
+        self.assertNotIn("待补充", stage)
         self.assertNotIn("Safari/Chrome/Firefox", stage)
 
     def test_sds_stage_matches_current_state(self) -> None:
@@ -394,7 +398,8 @@ class StageStatementTests(unittest.TestCase):
         )
         self.assertNotIn("Safari 待补充", sds)
         self.assertNotIn("Safari 人工验收记录待补充", sds)
-        self.assertIn("Safari 26.6 与 Edge 158 人工验收已完成", sds)
+        self.assertIn("Windows 11、Safari 26.6 与 Edge 158", sds)
+        self.assertNotIn("Windows 验收待 T-011", sds)
         self.assertIn("已关闭：Safari 17 与 Edge 120", sds)
 
 
@@ -415,6 +420,18 @@ class NoAutoDownloadTests(unittest.TestCase):
         )
         self.assertIn("LOCK_FILE", source)
         self.assertIn("requirements.lock", source)
+
+
+class LockedDependencyTests(unittest.TestCase):
+    def test_windows_transitive_dependency_is_pinned(self) -> None:
+        lock = (PROJECT_ROOT / "requirements.lock").read_text(encoding="utf-8")
+        entries = [
+            line.strip()
+            for line in lock.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertIn("colorama==0.4.6", entries)
+        self.assertTrue(all("==" in entry for entry in entries))
 
 
 if __name__ == "__main__":
