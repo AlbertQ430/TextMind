@@ -128,7 +128,7 @@ class AppLifecycleTests(unittest.TestCase):
         app = build_app(service)[0]
         self.assertEqual(service.started, 0)
         self.assertEqual(threading.active_count(), before)
-        self.assertEqual(app.version, "0.1.0")
+        self.assertEqual(app.version, "0.1.1")
 
     def test_lifespan_starts_and_stops_once(self) -> None:
         service = FakeTaskService()

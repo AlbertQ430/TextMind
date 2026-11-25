@@ -18,7 +18,8 @@
       <label class="field">
         <span>访问码</span>
         <input type="password" name="access_code" required
-               autocomplete="off" autofocus>
+               inputmode="numeric" pattern="[0-9]{6}" minlength="6"
+               maxlength="6" autocomplete="off" autofocus>
       </label>
       <button type="submit" class="primary">登录</button>
     </form>

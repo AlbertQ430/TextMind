@@ -51,7 +51,7 @@ from web.sse import event_stream
 
 LOGGER = logging.getLogger(__name__)
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 
 LOCAL_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765

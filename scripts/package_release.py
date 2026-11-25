@@ -24,8 +24,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from experiment.plans import load_plan_catalog  # noqa: E402
 from scripts import build_presets  # noqa: E402
+from web.app import APP_VERSION  # noqa: E402
 
-VERSION = "0.1.0"
+VERSION = APP_VERSION
 TOP_DIR = f"textmind-{VERSION}"
 PRESET_COUNT = 17
 
@@ -120,7 +121,8 @@ def check_release(root: Path | str = PROJECT_ROOT) -> list[str]:
 
 
 def _is_forbidden(relative: str) -> bool:
-    if relative in FORBIDDEN_NAMES or relative.endswith(FORBIDDEN_SUFFIXES):
+    name = relative.rsplit("/", 1)[-1]
+    if name in FORBIDDEN_NAMES or relative.endswith(FORBIDDEN_SUFFIXES):
         return True
     if relative.split("/")[0] in FORBIDDEN_DIRS:
         return True

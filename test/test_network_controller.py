@@ -21,10 +21,12 @@ from resources.settings import (  # noqa: E402
     SettingsWriteError,
 )
 from runtime.network import (  # noqa: E402
+    ACCESS_CODE_LENGTH,
     LOGIN_WINDOW_SECONDS,
     SOURCE_FAILURE_LIMIT,
     NetworkController,
     NetworkError,
+    generate_access_code,
     local_ipv4_addresses,
 )
 from web.session import (  # noqa: E402
@@ -234,6 +236,14 @@ class DisableTests(ControllerTestCase):
 
 
 class AccessCodeTests(ControllerTestCase):
+    def test_generated_access_code_is_six_digits(self) -> None:
+        with mock.patch("runtime.network.secrets.randbelow", return_value=42):
+            self.assertEqual(generate_access_code(), "000042")
+        for _ in range(100):
+            code = generate_access_code()
+            self.assertEqual(len(code), ACCESS_CODE_LENGTH)
+            self.assertTrue(code.isdigit())
+
     def test_verify_access_code(self) -> None:
         self.assertFalse(self.controller.verify_access_code("test-access-code"))
         self.controller.enable(8766)

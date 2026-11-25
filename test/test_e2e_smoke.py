@@ -89,7 +89,7 @@ class ReleaseSmokeTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls._tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls._tmp.name)
-        zip_path = cls.root / "textmind-0.1.0.zip"
+        zip_path = cls.root / "textmind-0.1.1.zip"
         package_release.build_release(zip_path)
 
         extract = cls.root / "extract"
@@ -193,7 +193,7 @@ class ReleaseSmokeTests(unittest.TestCase):
                 time.sleep(0.2)
 
     def test_health_and_pages_from_release(self) -> None:
-        self.assertEqual(self.client.get_json("/api/v1/health")["version"], "0.1.0")
+        self.assertEqual(self.client.get_json("/api/v1/health")["version"], "0.1.1")
         for path in ("/plans", "/monitor", "/history", "/settings"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.status(path), 200)

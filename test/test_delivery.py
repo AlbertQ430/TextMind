@@ -12,6 +12,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 import zipfile
 from pathlib import Path
@@ -67,6 +68,12 @@ class StartScriptTests(unittest.TestCase):
 
 
 class PackageCheckTests(unittest.TestCase):
+    def test_project_and_release_versions_match(self) -> None:
+        metadata = tomllib.loads(
+            (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(metadata["project"]["version"], package_release.VERSION)
+
     def test_repository_passes_check(self) -> None:
         self.assertEqual(package_release.check_release(), [])
 
@@ -96,9 +103,9 @@ class PackageBuildTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls._tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls._tmp.name)
-        cls.zip_path = cls.root / "textmind-0.1.0.zip"
+        cls.zip_path = cls.root / "textmind-0.1.1.zip"
         cls.result = package_release.build_release(cls.zip_path)
-        cls.second_zip = cls.root / "textmind-0.1.0-second.zip"
+        cls.second_zip = cls.root / "textmind-0.1.1-second.zip"
         cls.second = package_release.build_release(cls.second_zip)
 
     @classmethod

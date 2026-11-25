@@ -76,7 +76,7 @@ class HealthCheckTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers["content-type"].startswith("application/json"))
-        self.assertEqual(response.json(), {"status": "ok", "version": "0.1.0"})
+        self.assertEqual(response.json(), {"status": "ok", "version": "0.1.1"})
 
     def test_health_does_not_leak_host_or_paths(self) -> None:
         app = web_app.create_app(FakeContext())
@@ -92,7 +92,7 @@ class HealthCheckTests(unittest.TestCase):
         before = threading.active_count()
         app = web_app.create_app(FakeContext())
         self.assertEqual(threading.active_count(), before)
-        self.assertEqual(app.version, "0.1.0")
+        self.assertEqual(app.version, "0.1.1")
 
 
 class LaunchConstraintTests(unittest.TestCase):

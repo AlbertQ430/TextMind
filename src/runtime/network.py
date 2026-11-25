@@ -26,6 +26,7 @@ from web.session import LAN_SCOPES, LAN_PREAUTH_TTL_SECONDS
 LAN_HOST = "0.0.0.0"
 LOCAL_PORT_DEFAULT = 8765
 DEFAULT_LAN_PORT = 8766
+ACCESS_CODE_LENGTH = 6
 
 TLS_WARNING = (
     "局域网使用 HTTP 明文传输，访问码和数据不加密；请只在可信网络使用，"
@@ -38,6 +39,12 @@ SESSION_FAILURE_LIMIT = 5
 
 _SESSION_FAILURES_MAX = 1024
 _SOURCE_FAILURES_MAX = 1024
+
+
+def generate_access_code() -> str:
+    """生成六位数字访问码，使用密码学安全随机数并保留前导零。"""
+    value = secrets.randbelow(10 ** ACCESS_CODE_LENGTH)
+    return f"{value:0{ACCESS_CODE_LENGTH}d}"
 
 
 class NetworkError(Exception):
@@ -113,9 +120,7 @@ class NetworkController:
         self._server_factory = server_factory or _default_server_factory
         self._port_checker = port_checker or port_available
         self._address_provider = address_provider or local_ipv4_addresses
-        self._code_factory = code_factory or (
-            lambda: secrets.token_urlsafe(24)
-        )
+        self._code_factory = code_factory or generate_access_code
         self._start_timeout = start_timeout
         self._join_timeout = join_timeout
 

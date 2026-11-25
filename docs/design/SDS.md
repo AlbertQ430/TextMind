@@ -1005,7 +1005,9 @@ SSE 通过 `textmind_session` Cookie 鉴权，连接建立和每次心跳都检�
 
 ### 12.2 访问码与会话
 
-开启局域网时生成新的高熵随机访问码，仅在 Local App 设置页显示。访问码只保存在内存中，不写入设置文件、Cookie、URL 或日志。
+开启局域网时使用密码学安全随机数生成新的 6 位数字访问码，并保留前导零；访问码仅在 Local App 设置页显示，只保存在内存中，不写入设置文件、Cookie、URL 或日志。
+
+6 位数字码的安全边界依赖预认证会话 5 次失败限制、单来源 10 分钟 20 次失败限制和可信私人局域网约束。不得将局域网暴露到公网。
 
 #### 12.2.1 会话状态
 
@@ -1294,7 +1296,7 @@ Chrome 与 Firefox 已由用户从当前支持范围取消，不再作为发布�
 #### 发布包验证
 
 - `scripts/package_release.py --check` 校验必需文件、SciFact 来源/署名/许可证、评估源文件与预置构建依赖。
-- `--output` 构建固定顶层目录 `textmind-0.1.0/` 的 ZIP，包含源码、脚本、配置、Schema、SciFact 数据、评估 JSON、发布资产、`docs/`、17 条预置记录与图表、`MANIFEST.txt`。
+- `--output` 使用当前应用版本构建固定顶层目录 `textmind-<version>/` 的 ZIP，包含源码、脚本、配置、Schema、SciFact 数据、评估 JSON、发布资产、`docs/`、17 条预置记录与图表、`MANIFEST.txt`。
 - 排除 `.git/`、`.venv/`、`data/app/`、`logs/`、`results/runs/`、`results/imports/`、`dist/`、缓存和系统文件；预置结果在打包暂存目录构建。
 - 发布包解压后须启动真实 Uvicorn 进程，完成 health、五个页面、一次 SciFact BM25 运行和记录 Schema 校验。
 
